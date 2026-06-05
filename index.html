@@ -2695,20 +2695,22 @@ function exportPDF() {
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<!-- ตั้ง Title เป็นค่าว่าง เพื่อลดการรบกวนของ Header เวลา Print -->
-<title>&nbsp;</title> 
+<!-- ต้องตั้ง viewport เพื่อให้บนมือถือ/iPad ไม่ย่อหน้าจอ ทำให้ปุ่มพิมพ์ไม่เล็กเกินไป -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- ตั้ง Title ให้เป็นชื่อเพลง เพื่อให้ตอน Save as PDF (หรือ Print) ได้ชื่อไฟล์ตามชื่อเพลง -->
+<title>${songTitle}</title> 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ===== ตั้งค่ากระดาษ พิมพ์ ===== */
+  /* ===== ตั้งค่ากระดาษ พิมพ์ให้แน่ใจว่าเป็น A4 ===== */
   @page {
+    size: A4 portrait;
     margin-top: 0; /* ซ่อน header อัตโนมัติ (วันที่/เวลา) ด้านบน */
     margin-bottom: 0.5in; 
     margin-left: 0.5in;
     margin-right: 0.5in;
-    size: A4 portrait;
     /* การใส่เลขหน้าด้วย CSS (ใช้ได้กับบางเบราว์เซอร์) */
     @bottom-right {
       content: "หน้า " counter(page) " / " counter(pages);
@@ -2802,20 +2804,38 @@ function exportPDF() {
     padding-right: 2px;
   }
 
-  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ===== */
+  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ขยายให้รองรับการกดบนมือถือ ===== */
   .print-btn {
     position: fixed; bottom: 24px; right: 24px;
     background: #000; color: #fff; border: none;
-    padding: 10px 20px; font-size: 14px;
+    padding: 16px 28px; font-size: 16px;
     font-family: 'Sarabun', sans-serif;
-    font-weight: 600; cursor: pointer;
-    border-radius: 4px;
-    z-index: 100;
+    font-weight: 700; cursor: pointer;
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    z-index: 1000;
+    transition: transform 0.1s;
   }
+  .print-btn:active { transform: scale(0.95); }
   .print-btn:hover { background: #333; }
 
+  /* ปรับปุ่มให้ใหญ่และอยู่ตรงกลางสำหรับหน้าจอมือถือ/iPad */
+  @media screen and (max-width: 768px) {
+    .print-btn {
+      bottom: 24px;
+      left: 50%;
+      right: auto;
+      transform: translateX(-50%);
+      width: calc(100% - 48px);
+      max-width: 400px;
+      padding: 18px 24px;
+      font-size: 18px;
+    }
+    .print-btn:active { transform: translateX(-50%) scale(0.95); }
+  }
+
   @media print {
-    .print-btn { display: none; }
+    .print-btn { display: none !important; }
     /* นำ padding ออก เพราะเราใช้เทคนิค <thead> ดันพื้นที่แทนในทุกหน้า */
     body { padding: 0; background: #ffffff !important; }
   }
@@ -2838,7 +2858,7 @@ function exportPDF() {
   </tbody>
 </table>
 
-<button class="print-btn" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+<button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
 </body>
 </html>`;
 
@@ -2846,6 +2866,7 @@ function exportPDF() {
   if (!w) { showToast('ไม่สามารถเปิดหน้าต่างใหม่ได้ กรุณาอนุญาต Pop-up', 'error'); return; }
   w.document.write(printHTML);
   w.document.close();
+  w.document.title = songTitle; // บังคับเปลี่ยน title ของหน้าต่างอีกครั้งเพื่อความชัวร์ในการดึงไปเป็นชื่อไฟล์
   showToast('เปิดหน้าตารางโน้ต PDF แล้ว กด "พิมพ์ / บันทึก PDF" หรือ Ctrl+P', 'success');
 }
 // ======================================================
