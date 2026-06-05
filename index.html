@@ -562,6 +562,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
             <button class="dropdown-item" id="exportMenuMp3">🎵 ไฟล์เสียง (.MP3)</button>
             <button class="dropdown-item" id="exportMenuJson">📄 ไฟล์โปรเจกต์ (.JSON)</button>
             <button class="dropdown-item" id="exportMenuTxt">📝 ไฟล์ข้อความ (.TXT)</button>
+            <button class="dropdown-item" id="exportMenuPdf">🖨️ ตารางโน้ต (.PDF)</button>
           </div>
         </div>
         
@@ -2412,6 +2413,7 @@ function init() {
   document.getElementById('exportMenuMp3').addEventListener('click', () => { exportMenu.classList.remove('show'); exportMP3(); });
   document.getElementById('exportMenuJson').addEventListener('click', () => { exportMenu.classList.remove('show'); exportNotation(); });
   document.getElementById('exportMenuTxt').addEventListener('click', () => { exportMenu.classList.remove('show'); exportText(); });
+  document.getElementById('exportMenuPdf').addEventListener('click', () => { exportMenu.classList.remove('show'); exportPDF(); });
 
   document.getElementById('importBtn').addEventListener('click', executeImport);
 
@@ -2632,6 +2634,221 @@ function init() {
 
   window.addEventListener('blur', () => { pressedCodes.clear(); tabHeld = shiftHeld = arrowUpHeld = arrowDownHeld = false; updateModUIState(); });
 }
+
+// ===================== Export PDF =====================
+function exportPDF() {
+  if (chordTimer) { clearTimeout(chordTimer); commitChord(); }
+
+  // ใช้ตัวอักษรโน้ตที่มีสัญลักษณ์ ฺ และ ํ ของจริง
+  const NOTE_CHARS = ['มฺ','ฟฺ','ซฺ','ลฺ','ทฺ','ด','ร','ม','ฟ','ซ','ล','ท','ดํ','รํ','มํ','ฟํ'];
+  
+  function noteHTML(idx) {
+    if (idx === null || idx === undefined) return '<span class="rest">-</span>';
+    return `<span class="note">${NOTE_CHARS[idx]}</span>`;
+  }
+
+  const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
+  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR; // 32
+  const songTitle = (state.songName && state.songName.trim()) ? state.songName.trim() : 'ไม่มีชื่อเพลง';
+
+  // Build content blocks
+  let contentHTML = '';
+
+  for (let line = 0; line < totalLines; line++) {
+    const lineNum = line + 1;
+
+    // Section header (ท่อน) — แสดงก่อนตาราง ถ้ามี
+    const secName = (state.sections && state.sections[lineNum] !== undefined) ? state.sections[lineNum] : null;
+    if (secName !== null) {
+      contentHTML += `<div class="section-label">${secName}</div>`;
+    }
+
+    // Build 8 bars × 4 beats = 32 cells per row
+    let topCells = '', botCells = '';
+    for (let b = 0; b < beatsPerLine; b++) {
+      const globalBeat = line * beatsPerLine + b;
+      const rn = state.notes.right[globalBeat];
+      const ln = state.notes.left[globalBeat];
+      const isBarEnd = (b + 1) % 4 === 0; // กั้นห้องทุกๆ 4 จังหวะ
+      const barEndClass = isBarEnd ? ' bar-end' : '';
+      topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
+      botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
+    }
+
+    // กลับต้น: ตรวจ state.repeats[lineNum]
+    const hasRepeat = state.repeats && state.repeats[lineNum] !== undefined;
+
+    contentHTML += `
+      <div class="line-block${hasRepeat ? ' has-repeat' : ''}">
+        <table class="notation-table">
+          <tbody>
+            <tr class="top-row">${topCells}</tr>
+            <tr class="bot-row">${botCells}</tr>
+          </tbody>
+        </table>
+        ${hasRepeat ? '<div class="repeat-label">กลับต้น</div>' : ''}
+      </div>
+    `;
+  }
+
+  const printHTML = `<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<!-- ตั้ง Title เป็นค่าว่าง เพื่อลดการรบกวนของ Header เวลา Print -->
+<title>&nbsp;</title> 
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ===== ตั้งค่ากระดาษ พิมพ์ ===== */
+  @page {
+    margin-top: 0; /* ซ่อน header อัตโนมัติ (วันที่/เวลา) ด้านบน */
+    margin-bottom: 0.5in; 
+    margin-left: 0.5in;
+    margin-right: 0.5in;
+    size: A4 portrait;
+    /* การใส่เลขหน้าด้วย CSS (ใช้ได้กับบางเบราว์เซอร์) */
+    @bottom-right {
+      content: "หน้า " counter(page) " / " counter(pages);
+      font-family: 'Sarabun', sans-serif;
+      font-size: 12px;
+    }
+  }
+
+  body {
+    font-family: 'Sarabun', 'TH Sarabun New', 'Noto Sans Thai', serif;
+    background: #ffffff !important; /* กระดาษสีขาวเท่านั้น */
+    color: #000000;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  @media screen {
+    body {
+      padding: 0.5in;
+      max-width: 210mm;
+      margin: 0 auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+  }
+
+  /* ===== หัวเรื่อง ===== */
+  .doc-title {
+    text-align: center;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 22px;
+    letter-spacing: 0.01em;
+  }
+
+  /* ===== ชื่อท่อน ===== */
+  .section-label {
+    font-size: 14px;
+    font-weight: 700;
+    margin-top: 18px;
+    margin-bottom: 4px;
+    text-align: left;
+  }
+
+  /* ===== ตาราง ===== */
+  .line-block {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+  }
+
+  table.notation-table {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    font-size: 13px;
+  }
+
+  td.nc {
+    border: none;
+    text-align: center;
+    padding: 0;
+    height: 28px;
+    vertical-align: middle;
+  }
+
+  /* เส้นขอบตารางรูปแบบดั้งเดิม */
+  .top-row td:first-child, .bot-row td:first-child { border-left: 1px solid #000; }
+  .top-row td:last-child,  .bot-row td:last-child  { border-right: 1px solid #000; }
+  .top-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; }
+  .bot-row td { border-bottom: 1px solid #000; }
+
+  /* เส้นแนวตั้งกั้นห้อง (ทุกๆ 4 จังหวะ) */
+  td.nc.bar-end { border-right: 1px solid #000; }
+
+  /* ===== ตัวโน้ต ===== */
+  .note, .rest {
+    display: inline-block;
+    height: 14px;          /* บังคับความสูงตายตัวไม่ให้ดันเซลล์ตาราง */
+    line-height: 14px;     /* จัดกึ่งกลางแนวตั้งในตัวเอง */
+    font-size: 13px;
+    text-align: center;
+    vertical-align: middle;
+  }
+  .rest { color: #000; }
+
+  /* ===== กลับต้น ===== */
+  .repeat-label {
+    text-align: right;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 2px;
+    padding-right: 2px;
+  }
+
+  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ===== */
+  .print-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #000; color: #fff; border: none;
+    padding: 10px 20px; font-size: 14px;
+    font-family: 'Sarabun', sans-serif;
+    font-weight: 600; cursor: pointer;
+    border-radius: 4px;
+    z-index: 100;
+  }
+  .print-btn:hover { background: #333; }
+
+  @media print {
+    .print-btn { display: none; }
+    /* นำ padding ออก เพราะเราใช้เทคนิค <thead> ดันพื้นที่แทนในทุกหน้า */
+    body { padding: 0; background: #ffffff !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ใช้เทคนิคตารางครอบ + THEAD เพื่อสร้างระยะเว้นด้านบน 0.6 นิ้ว ในทุกๆ หน้าที่ปรินท์ -->
+<table style="width: 100%; border: none; border-collapse: collapse;">
+  <thead>
+    <tr><th style="height: 0.6in; padding: 0; border: none;"></th></tr>
+  </thead>
+  <tbody>
+    <tr><td style="padding: 0; border: none;">
+      
+      <div class="doc-title">เพลง${songTitle}</div>
+      ${contentHTML}
+
+    </td></tr>
+  </tbody>
+</table>
+
+<button class="print-btn" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank', 'width=900,height=800');
+  if (!w) { showToast('ไม่สามารถเปิดหน้าต่างใหม่ได้ กรุณาอนุญาต Pop-up', 'error'); return; }
+  w.document.write(printHTML);
+  w.document.close();
+  showToast('เปิดหน้าตารางโน้ต PDF แล้ว กด "พิมพ์ / บันทึก PDF" หรือ Ctrl+P', 'success');
+}
+// ======================================================
 
 init();
 </script>
