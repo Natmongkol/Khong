@@ -534,7 +534,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
         <span class="control-label">bpm</span>
       </div>
       <div class="control-group">
-        <span class="control-label">วรรคทั้งหมด</span>
+        <span class="control-label">บรรทัดทั้งหมด</span>
         <input type="number" id="numVak" class="tempo-input" min="1" value="1" inputmode="numeric">
       </div>
     </div>
@@ -831,7 +831,6 @@ function positionMenuForCell(menu) {
       const menuWidth = menu.offsetWidth || 280;
       let menuX = rect.left + rect.width / 2;
       
-      // ป้องกันเมนูล้นจอซ้าย-ขวา
       if (menuX - menuWidth / 2 < 10) menuX = menuWidth / 2 + 10;
       if (menuX + menuWidth / 2 > window.innerWidth - 10) menuX = window.innerWidth - menuWidth / 2 - 10;
 
@@ -843,7 +842,6 @@ function positionMenuForCell(menu) {
           topPx = rect.bottom + 14;
       }
 
-      // ป้องกันเมนูล้นด้านล่าง (เหนือ touch keyboard)
       const kbEl = document.getElementById('touchKeyboard');
       const kbTop = kbEl ? kbEl.getBoundingClientRect().top : window.innerHeight;
       if (topPx + (menu.offsetHeight || 100) > kbTop - 10) {
@@ -1381,20 +1379,15 @@ function updateSectionStats() {
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
   const sectionKeys = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
   
+  if (!sectionKeys.includes(1)) sectionKeys.unshift(1);
+  
   sectionLineMap = sectionKeys;
-
   let sectionLines = [];
-  if (sectionKeys.length === 0) {
-      sectionLines.push(totalLines);
-  } else {
-      for (let i = 0; i < sectionKeys.length; i++) {
-          let secStart = sectionKeys[i];
-          if (i === 0 && secStart > 1) {
-              sectionLines.push(secStart - 1);
-          }
-          let nextSecStart = (i + 1 < sectionKeys.length) ? sectionKeys[i+1] : totalLines + 1;
-          sectionLines.push(nextSecStart - secStart);
-      }
+
+  for (let i = 0; i < sectionKeys.length; i++) {
+      let secStart = sectionKeys[i];
+      let nextSecStart = (i + 1 < sectionKeys.length) ? sectionKeys[i+1] : totalLines + 1;
+      sectionLines.push(nextSecStart - secStart);
   }
   
   const secCount = sectionLines.length;
@@ -1441,6 +1434,7 @@ function renderNotation() {
     // --- Section Header UI ---
     const secHeader = document.createElement('div'); secHeader.className = 'section-header';
     
+    // เช็คว่ามีชื่อท่อนถูกตั้งไว้ที่บรรทัดนี้หรือไม่ (ไม่บังคับว่าบรรทัด 1 ต้องมี)
     if (state.sections[lineNum] !== undefined) {
        const secName = state.sections[lineNum];
        if (state._editingSection === lineNum) {
@@ -1465,9 +1459,7 @@ function renderNotation() {
 
     secHeader.addEventListener('click', (e) => {
         if (e.target.classList.contains('add-sec')) {
-            // นับท่อนทั้งหมดที่มีอยู่เพื่อตั้งชื่อ default
-            const currentSecCount = Object.keys(state.sections).length;
-            state.sections[lineNum] = `ท่อนที่ ${currentSecCount + 1}`; 
+            state.sections[lineNum] = `ท่อนที่ ${Object.keys(state.sections).length + 1}`; 
             state._editingSection = lineNum; renderNotation();
         }
         else if (e.target.classList.contains('edit-sec')) { state._editingSection = lineNum; renderNotation(); }
@@ -1568,7 +1560,7 @@ function renderNotation() {
     const cb = repeatCtrl.querySelector('.repeat-checkbox'); const inp = repeatCtrl.querySelector('.repeat-target-input');
     
     const handleRepeatChange = () => {
-      pushUndo(); // บันทึกประวัติเผื่อกดย้อนกลับ
+      pushUndo();
       if (!state.repeats) state.repeats = {};
       if (cb.checked) {
           let val = parseInt(inp.value, 10) || 1;
@@ -1584,7 +1576,7 @@ function renderNotation() {
     cb.addEventListener('change', handleRepeatChange);
     
     inp.addEventListener('change', (e) => {
-      pushUndo(); // บันทึกประวัติเผื่อกดย้อนกลับ
+      pushUndo();
       let val = parseInt(e.target.value, 10) || 1; 
       val = Math.max(1, Math.min(displayLineNum, val)); 
       e.target.value = val; 
@@ -1611,7 +1603,7 @@ function renderNotation() {
 function getPlaybackSequence() {
   const seq = []; const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
   const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR; let currentLine = 1; const repeated = new Set();
-  const MAX_STEPS = totalLines * 4; let steps = 0; // ป้องกัน infinite loop
+  const MAX_STEPS = totalLines * 4; let steps = 0;
 
   while (currentLine <= totalLines && steps++ < MAX_STEPS) {
     const startBeat = (currentLine - 1) * beatsPerLine; const endBeat = startBeat + beatsPerLine - 1;
@@ -1681,7 +1673,6 @@ function updatePlayRangeHints() {
     let sIdx = parseInt(prStart.value);
     let eIdx = parseInt(prEnd.value);
     
-    // อัปเดตชื่อท่อนโดยไม่บังคับแก้ตัวเลขขณะกำลังพิมพ์
     if (!isNaN(sIdx) && sIdx >= 1 && sIdx <= sectionLineMap.length) {
         const sLine = sectionLineMap[sIdx - 1];
         const sName = (state.sections && state.sections[sLine]) ? state.sections[sLine] : 'ไม่มีชื่อท่อน';
@@ -1720,6 +1711,7 @@ function clampPlayRangeValues() {
 
 function openPlayRangeModal(startLineNum) {
     sectionLineMap = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
+    if (!sectionLineMap.includes(1)) sectionLineMap.unshift(1); 
     
     if (sectionLineMap.length === 0) {
         showToast('คุณยังไม่ได้สร้าง "ท่อน" ใดๆ โปรดแทรกท่อนคั่นก่อน', 'error');
@@ -1738,7 +1730,6 @@ function openPlayRangeModal(startLineNum) {
     prStart.value = startIndex + 1;
     prEnd.value = sectionLineMap.length;
     
-    // ใช้ input สำหรับอัปเดต Hint ทันที และใช้ change สำหรับบังคับค่าให้ถูกต้องเมื่อพิมพ์เสร็จ
     prStart.removeEventListener('input', updatePlayRangeHints);
     prStart.addEventListener('input', updatePlayRangeHints);
     prStart.removeEventListener('change', clampPlayRangeValues);
@@ -1810,21 +1801,17 @@ function playLine(lineNum) {
   const endBeat = startBeat + beatsPerLine - 1;
   
   const seq = [];
-  // โหลดรอบที่ 1
   for (let b = startBeat; b <= endBeat; b++) {
       if (b < totalBeats()) seq.push(b);
   }
   
-  // โหมดเล่นบรรทัดเดียว อนุญาตให้เล่นวนกลับเฉพาะตัวเอง (เล่น 2 รอบ)
   if (state.repeats && state.repeats[lineNum] !== undefined) {
       let target = parseInt(state.repeats[lineNum], 10);
       if (target === lineNum) {
-          // โหลดรอบที่ 2
           for (let b = startBeat; b <= endBeat; b++) {
               if (b < totalBeats()) seq.push(b);
           }
       } else {
-          // ถ้าเป้าหมายคือข้ามบรรทัด จะไม่ทำงานในโหมดนี้
           showToast(`โหมด "เล่นวรรค" จะไม่วนข้ามบรรทัด กรุณาใช้ปุ่ม "▶ เล่นท่อนนี้" ด้านบนแทน`, 'success');
       }
   }
@@ -1860,7 +1847,6 @@ function scheduler() {
   const lookahead = 25.0; const scheduleAheadTime = 0.15; 
   
   while (currentStep < playbackSeq.length && nextNoteTime < ctx.currentTime + scheduleAheadTime) {
-      // คำนวณความเร็ว (beatDur) ใหม่อย่างต่อเนื่อง เผื่อผู้ใช้แก้ BPM ขณะเล่น
       const currentBeatDur = 60 / state.bpm;
       scheduleBeat(currentStep, nextNoteTime); 
       nextNoteTime += currentBeatDur; 
@@ -2383,16 +2369,16 @@ function init() {
     showToast('ล้างตารางเรียบร้อย');
   });
 
-  // Modal สำหรับ เลือกเล่นเป็นช่วง
+  // Modal สำหรับ เลือกเล่นเป็นช่วง (จัดการ Event ให้ถูกต้อง)
   document.getElementById('cancelPlayRangeBtn').addEventListener('click', () => {
     document.getElementById('playRangeModal').classList.remove('show');
   });
   document.getElementById('confirmPlayRangeBtn').addEventListener('click', () => {
     document.getElementById('playRangeModal').classList.remove('show');
     
-    // ตรวจสอบและบังคับค่าให้ถูกต้องก่อนเริ่มเล่น
     let sIdx = parseInt(document.getElementById('prStart').value) || 1;
     let eIdx = parseInt(document.getElementById('prEnd').value) || sectionLineMap.length;
+    
     if (sIdx < 1) sIdx = 1;
     if (sIdx > sectionLineMap.length) sIdx = sectionLineMap.length;
     if (eIdx < sIdx) eIdx = sIdx;
