@@ -2695,8 +2695,8 @@ function exportPDF() {
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<!-- ต้องตั้ง viewport เพื่อให้บนมือถือ/iPad ไม่ย่อหน้าจอ ทำให้ปุ่มพิมพ์ไม่เล็กเกินไป -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<!-- บังคับ viewport เป็น 1024 เพื่อให้มือถือ Zoom-out แสดงหน้าจอเหมือน Desktop (ตารางโน้ตจะได้ไม่พัง) -->
+<meta name="viewport" content="width=1024">
 <!-- ตั้ง Title ให้เป็นชื่อเพลง เพื่อให้ตอน Save as PDF (หรือ Print) ได้ชื่อไฟล์ตามชื่อเพลง -->
 <title>${songTitle}</title> 
 <style>
@@ -2804,35 +2804,24 @@ function exportPDF() {
     padding-right: 2px;
   }
 
-  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ขยายให้รองรับการกดบนมือถือ ===== */
+  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ===== */
   .print-btn {
-    position: fixed; bottom: 24px; right: 24px;
+    position: fixed; bottom: 40px; left: 50%;
+    transform: translateX(-50%);
     background: #000; color: #fff; border: none;
-    padding: 16px 28px; font-size: 16px;
+    padding: 24px 40px; font-size: 26px; /* ขยายขนาดใหญ่เพื่อให้ดูพอดีเมื่อมือถือซูมออก */
     font-family: 'Sarabun', sans-serif;
     font-weight: 700; cursor: pointer;
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
     z-index: 1000;
+    width: 80%;
+    max-width: 500px;
+    text-align: center;
     transition: transform 0.1s;
   }
-  .print-btn:active { transform: scale(0.95); }
+  .print-btn:active { transform: translateX(-50%) scale(0.96); background: #333; }
   .print-btn:hover { background: #333; }
-
-  /* ปรับปุ่มให้ใหญ่และอยู่ตรงกลางสำหรับหน้าจอมือถือ/iPad */
-  @media screen and (max-width: 768px) {
-    .print-btn {
-      bottom: 24px;
-      left: 50%;
-      right: auto;
-      transform: translateX(-50%);
-      width: calc(100% - 48px);
-      max-width: 400px;
-      padding: 18px 24px;
-      font-size: 18px;
-    }
-    .print-btn:active { transform: translateX(-50%) scale(0.95); }
-  }
 
   @media print {
     .print-btn { display: none !important; }
