@@ -251,6 +251,11 @@ section.panel h3 {
 .beat-cell {
   font-size: clamp(11px, 3.2vw, 14px); color: var(--text); padding: clamp(2px, 1vw, 4px) 0; border-radius: 4px; cursor: pointer; transition: background 0.1s;
 }
+@media (pointer: coarse) {
+  .beat-cell { font-size: clamp(18px, 4.5vw, 24px); padding: clamp(8px, 2.5vw, 14px) 0; }
+  .bar-cell { padding: clamp(6px, 2vw, 10px) 2px; }
+  .hand-label { font-size: 14px; min-height: 28px; }
+}
 .beat-cell.empty { color: var(--dim); }
 .beat-cell.high { color: var(--gold); }
 .beat-cell.low { color: var(--accent); }
