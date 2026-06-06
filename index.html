@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0e1a">
-<title>ฆ้องวงใหญ่ — Khong Wong Yai</title>
+<title>ฆ้องวงใหญ่ — Khong Wong Yai (v4.9)</title>
 
 <!-- ไลบรารีสำหรับสร้าง MP3 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
@@ -19,8 +19,12 @@
 
 * { box-sizing: border-box; }
 
-body {
+html, body {
   margin: 0;
+  overscroll-behavior: none; /* ป้องกันยางยืดบน iOS / iframe */
+}
+
+body {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Sarabun", system-ui, sans-serif;
   background:
     radial-gradient(ellipse at 20% 0%, rgba(91,158,255,0.10), transparent 60%),
@@ -30,12 +34,18 @@ body {
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
-  overscroll-behavior-y: none; 
   -webkit-touch-callout: none;
 }
 
 button, input, select, .gong, .beat-cell, .toggle {
   touch-action: manipulation;
+}
+
+/* ป้องกัน iOS Auto Zoom ในช่องกรอกข้อความสำหรับมือถือและแท็บเล็ต */
+@media (max-width: 820px) {
+  input[type="text"], input[type="number"], .tempo-input, .song-input, .sec-input, .repeat-target-input {
+    font-size: 16px !important;
+  }
 }
 
 header {
@@ -137,7 +147,6 @@ section.panel h3 {
 }
 .song-input:focus { outline: none; border-color: var(--accent); }
 
-/* Dropdown Menu CSS */
 .dropdown { position: relative; display: inline-block; }
 .dropdown-menu {
   position: absolute; top: 100%; right: 0; margin-top: 6px;
@@ -170,7 +179,6 @@ section.panel h3 {
 }
 @media (max-width: 820px) { .gong-stage { aspect-ratio: 1.3 / 1; } }
 @media (max-width: 600px) { .gong-stage { aspect-ratio: 1.1 / 1; } }
-/* Landscape มือถือ: จำกัดความสูงไม่ให้กินพื้นที่มาก */
 @media (max-height: 500px) and (pointer: coarse) { .gong-stage { aspect-ratio: 2.5 / 1; max-height: 240px; } }
 .gong {
   position: absolute; width: var(--gong-size); height: var(--gong-size);
@@ -215,23 +223,38 @@ section.panel h3 {
 .notation-wrapper { width: 100%; overflow-x: auto; padding-bottom: 8px; user-select: none; -webkit-user-select: none; }
 .notation { font-family: "SF Mono", Menlo, monospace; min-width: min(600px, 100%); touch-action: pan-x pan-y; }
 .bar-pair { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; }
+
+.vak-label-col { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 44px; flex-shrink: 0; }
 .vak-label {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--panel-3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text); font-size: 14px; font-weight: 700;
-  width: 38px; flex-shrink: 0; margin-bottom: 2px;
+  width: 100%; padding: 4px 0; margin-bottom: 2px;
 }
+.line-action-bar { display: flex; flex-direction: column; gap: 2px; width: 100%; }
+.btn-line {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px;
+  color: var(--muted); font-size: 11px; padding: 3px 0; cursor: pointer; text-align: center;
+  transition: all 0.15s;
+}
+.btn-line:hover:not(:disabled) { background: var(--panel-3); color: var(--text); border-color: var(--accent); }
+.btn-line.del:hover:not(:disabled) { color: var(--red); border-color: var(--red); background: rgba(255,94,122,0.1); }
+.btn-line:disabled { opacity: 0.3; cursor: not-allowed; }
+
 @media (max-width: 400px) {
-  .vak-label { width: 28px; font-size: 11px; }
+  .vak-label-col { width: 32px; }
+  .vak-label { font-size: 11px; }
   .hand-label { font-size: 9px !important; }
   .bar-pair { gap: 4px; }
   .bar-row { gap: 2px !important; }
 }
+
 .line-play-btn { cursor: pointer; color: var(--green); font-size: 10px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.15s; background: rgba(63,223,142,0.1); margin-bottom: 4px; padding-left: 2px; border: 1px solid rgba(63,223,142,0.3); }
 .line-play-btn:hover { background: var(--green); color: var(--bg); transform: scale(1.1); box-shadow: 0 2px 6px rgba(63,223,142,0.3); }
 .line-play-btn.stop-active { color: var(--red); border-color: rgba(255,94,122,0.3); background: rgba(255,94,122,0.1); padding-left: 0; font-size: 12px; }
 .line-play-btn.stop-active:hover { background: var(--red); color: var(--bg); box-shadow: 0 2px 6px rgba(255,94,122,0.3); }
 .line-num { font-size: 12px; color: var(--muted); }
+
 .bar-rows-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .bar-row { display: grid; gap: 4px; margin-bottom: 2px; }
 .hand-label {
@@ -311,9 +334,8 @@ section.panel h3 {
   font-family: "SF Mono", Menlo, monospace;
 }
 
-/* Section Markers CSS */
 .line-wrap { margin-bottom: 16px; }
-.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding-left: 46px; flex-wrap: wrap; }
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding-left: 52px; flex-wrap: wrap; }
 .sec-title { font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(91,158,255,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(91,158,255,0.3); }
 .btn-sec { background: var(--panel-3); border: 1px solid var(--border); color: var(--text); font-size: 11px; font-weight:600; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: inherit; }
 .btn-sec:hover { background: var(--panel); border-color: var(--accent); }
@@ -326,7 +348,6 @@ section.panel h3 {
 .btn-sec.del-sec:hover { background: var(--red); color: var(--bg); border-color: var(--red); }
 .sec-input { background: var(--bg); border: 1px solid var(--accent); border-radius: 4px; color: var(--text); padding: 3px 8px; font-size: 12px; font-family: inherit; width: 180px; outline: none; }
 
-/* Modal CSS */
 .modal-overlay {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
@@ -424,7 +445,6 @@ section.panel h3 {
   }
   body { padding-bottom: var(--kb-height, 300px); transition: padding-bottom 0.3s ease; }
 }
-/* Landscape มือถือ: แป้นเล็กลง ไม่กินพื้นที่มาก */
 @media (pointer: coarse) and (max-height: 500px) {
   .touch-keyboard { padding: 6px 10px; }
   .tk-note { width: clamp(30px, 8vw, 38px) !important; height: clamp(30px, 8vw, 38px) !important; }
@@ -440,7 +460,6 @@ section.panel h3 {
   cursor: pointer; display: flex; align-items: center; justify-content: center;
 }
 
-/* แถบปุ่ม Play/Stop สำหรับมือถือ */
 .tk-playback-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 8px; }
 .tk-playback-row .tk-action { flex: 1; max-width: 160px; font-size: clamp(12px, 3.5vw, 14px); font-weight: 700; height: clamp(36px, 10vw, 42px); border-width: 1.5px;}
 .tk-action.play { border-color: var(--green); color: var(--green); background: rgba(63,223,142,0.05); }
@@ -516,7 +535,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <header>
   <div class="title-row">
     <h1>ฆ้องวงใหญ่ — Khong Wong Yai</h1>
-    <span class="sub">บันทึก · เล่น · สร้างโน้ตดนตรีไทย · v4.5</span>
+    <span class="sub">บันทึก · เล่น · สร้างโน้ตดนตรีไทย · v4.9 (Embed Ready)</span>
   </div>
 </header>
 
@@ -567,6 +586,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
         </div>
         
         <button class="btn" id="importBtn" style="margin-left: 4px;">⬆ Import</button>
+        <button class="btn" id="importPdfBtn" style="margin-left: 4px; border-color: var(--purple); color: var(--purple);">📥 PDF</button>
       </div>
     </div>
     
@@ -587,7 +607,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
       <div class="stat"><span class="label">โครงสร้างท่อน</span><span class="value" id="sectionCount">1 ท่อน (1 บรรทัด)</span></div>
     </div>
 
-    <!-- Save / Load Panel -->
     <div class="save-panel">
       <div class="save-panel-title">
         สถานะการบันทึกข้อมูล
@@ -607,7 +626,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 
   <div class="section-spacer"></div>
 
-  <!-- Gong stage -->
   <section class="panel">
     <h2>Instrument</h2>
     <h3>ฆ้องวงใหญ่ · 16 ลูก · เสียง 7 เสียง</h3>
@@ -618,7 +636,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 
   <div class="section-spacer"></div>
 
-  <!-- Notation -->
   <section class="panel">
     <h2>Notation</h2>
     <h3>ทางฆ้องวงใหญ่ · 4 จังหวะ ต่อ ห้อง</h3>
@@ -637,13 +654,12 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   
   <div class="section-spacer"></div>
   
-  <!-- Quick start + keyboard reference -->
   <section class="panel">
     <h2>คู่มือการใช้งาน</h2>
     <h3>ระบบคีย์บอร์ดแบบขยาย (ใช้งานกับฆ้องวงใหญ่ 16 ลูก)</h3>
     <div class="help-text">
       ตรวจสอบให้แน่ใจว่าได้เปิดโหมด <strong>Record</strong> ไว้แล้ว คุณสามารถพิมพ์โน้ตลงไปในช่องตาราง (เคอร์เซอร์สีฟ้า) 
-      โดยใช้แป้นพิมพ์ของคอมพิวเตอร์ ระบบได้จัดปุ่มโน้ตเป็น 3 ระดับเสียงอย่างชัดเจน:
+      โดยใช้แป้นพิมพ์ของคอมพิวเตอร์ หรือแป้นพิมพ์สัมผัสบนมือถือ
       
       <div id="imeInfographic" class="ime-infographic"></div>
       
@@ -668,14 +684,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
           <tr>
             <td><kbd>Space</kbd></td>
             <td><strong>โหมดปกติ:</strong> เล่น / หยุดเพลง <br><strong>โหมดแก้ไขโน้ต:</strong> ใส่เครื่องหมาย <strong>(หยุด)</strong> และเลื่อนเคอร์เซอร์</td>
-          </tr>
-          <tr>
-            <td><kbd>Backspace</kbd> / <kbd>Delete</kbd></td>
-            <td>ลบโน้ตในจังหวะปัจจุบัน</td>
-          </tr>
-          <tr>
-            <td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td>
-            <td><strong>Undo และ Redo</strong> — ย้อนกลับการกระทำ หรือทำซ้ำการกระทำที่เพิ่งย้อนกลับไป</td>
           </tr>
         </tbody>
       </table>
@@ -792,15 +800,62 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   </div>
 </div>
 
+<!-- ===== Modal: Import PDF ===== -->
+<div class="modal-overlay" id="importPdfOverlay">
+  <div class="modal-content" style="max-width:520px; width:92%;">
+    <h3 class="modal-title">📥 Import ตารางโน้ตจาก PDF</h3>
+    <p class="modal-body" style="margin-bottom:16px; line-height:1.7;">
+      ระบบจะอ่านโน้ตไทย (<span style="color:var(--accent);font-family:monospace">มฺ ฟฺ ซฺ ลฺ ทฺ ด ร ม ฟ ซ ล ท ดํ รํ มํ ฟํ</span>) จาก PDF แล้วใส่ลงตารางโดยอัตโนมัติ<br>
+      <span style="font-size:12px;color:var(--dim);">รองรับ PDF ที่มี text layer (พิมพ์ได้/copy ได้) เช่น PDF ที่ Export จากโปรแกรมโน้ต, Word, หรือระบบนี้</span>
+    </p>
+
+    <div id="pdfDropZone" style="
+      border: 2px dashed var(--border); border-radius: 10px;
+      padding: 36px 20px; text-align: center; cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: rgba(191,140,255,0.03);
+    ">
+      <div style="font-size:36px; margin-bottom:10px; pointer-events:none;">📄</div>
+      <div style="font-size:14px; font-weight:600; color:var(--text); margin-bottom:4px; pointer-events:none;">คลิกเลือกไฟล์ หรือลากวางที่นี่</div>
+      <div style="font-size:12px; color:var(--muted); pointer-events:none;">รองรับ .PDF เท่านั้น</div>
+      <input type="file" id="pdfFileInput" accept=".pdf,application/pdf" style="display:none;">
+    </div>
+
+    <!-- Progress area -->
+    <div id="pdfImportProgress" style="display:none; margin-top:16px;">
+      <div style="background:var(--panel-3); border-radius:6px; height:6px; overflow:hidden; margin-bottom:8px;">
+        <div id="pdfProgressBar" style="height:100%; width:0%; background:var(--purple); border-radius:6px; transition:width 0.3s;"></div>
+      </div>
+      <div id="pdfProgressLabel" style="font-size:13px; color:var(--muted); text-align:center;">กำลังอ่าน PDF...</div>
+    </div>
+
+    <!-- Preview area -->
+    <div id="pdfImportPreview" style="display:none; margin-top:16px; max-height:180px; overflow-y:auto;
+      background:var(--panel-3); border:1px solid var(--border); border-radius:8px; padding:12px;">
+      <div style="font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:8px;">พรีวิวโน้ตที่อ่านได้</div>
+      <div id="pdfPreviewContent" style="font-family:monospace; font-size:13px; color:var(--text); line-height:1.8; word-break:break-all;"></div>
+    </div>
+
+    <div id="pdfImportError" style="display:none; margin-top:12px; padding:10px 14px;
+      background:rgba(255,94,122,0.08); border:1px solid rgba(255,94,122,0.3); border-radius:8px;
+      font-size:13px; color:var(--red);"></div>
+
+    <div class="modal-actions" style="margin-top:20px;">
+      <button class="btn" id="cancelPdfImportBtn">ยกเลิก</button>
+      <button class="btn primary" id="confirmPdfImportBtn" disabled>✓ นำเข้าโน้ต</button>
+    </div>
+  </div>
+</div>
+
 <footer>
-  © 2026 · ฆ้องวงใหญ่ (Khong Wong Yai) Notation System · v4.5 · Manual Save · รองรับทุกอุปกรณ์
+  © 2026 · ฆ้องวงใหญ่ (Khong Wong Yai) Notation System · v4.9 · Embed Ready
 </footer>
 
 <script>
 function updatePageTitle() {
   document.title = state.songName && state.songName.trim() !== '' 
     ? `${state.songName} — Khong Wong Yai` 
-    : 'ฆ้องวงใหญ่ — Khong Wong Yai';
+    : 'ฆ้องวงใหญ่ — Khong Wong Yai (v4.9)';
 }
 
 function showToast(message, type = 'success') {
@@ -867,9 +922,9 @@ const BEATS_PER_BAR = 4;
 const BARS_PER_VAK = 8;       
 
 const FREQS = [
-   270,  300,  330,  370,  410,
-   450,  506,  558,  600,  680,  750,  830,
-   915, 1000, 1115, 1225
+   274,  303,  335,  369,  408,
+   450,  497,  549,  606,  669,  738,  815,
+   900,  994, 1097, 1211
 ];
 const NOTE_BASE = ['ม','ฟ','ซ','ล','ท','ด','ร','ม','ฟ','ซ','ล','ท','ด','ร','ม','ฟ'];
 
@@ -984,17 +1039,22 @@ function unlockAudio() {
   if(audioUnlocked) return;
   const ctx = ac(); if (!ctx) return;
   const doUnlock = () => {
-    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer; source.connect(ctx.destination); source.start(0);
-    audioUnlocked = true;
-    if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !iosWarned) {
-      showToast('หากไม่มีเสียงบน iPhone/iPad โปรดตรวจสอบสวิตช์ปิดเสียงด้านข้างเครื่อง', 'success');
-      iosWarned = true;
+    try {
+      const buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer; source.connect(ctx.destination); source.start(0);
+      audioUnlocked = true;
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent) && !iosWarned) {
+        showToast('หากไม่มีเสียงบน iPhone/iPad โปรดตรวจสอบปุ่มปิดเสียงข้างเครื่อง', 'success');
+        iosWarned = true;
+      }
+    } catch (e) {
+      console.warn("Audio unlock suppressed:", e);
     }
   };
-  if (ctx.state === 'suspended') ctx.resume().then(doUnlock).catch(() => {});
-  else doUnlock();
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(doUnlock).catch((e) => console.warn("Audio context resume blocked:", e));
+  } else doUnlock();
 }
 window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
 window.addEventListener('click', unlockAudio, { once: true });
@@ -1222,8 +1282,6 @@ function getSafeFilename(name) {
   return name.trim().replace(/[\/\\?%*:|"<>]/g, '-');
 }
 
-// ------ ระบบคัดลอก-วาง (Copy & Paste) ------
-
 function copyRoom() {
     if (state.cursorBeat === -1) return;
     const bar = Math.floor(state.cursorBeat / 4);
@@ -1249,7 +1307,6 @@ function pasteRoom() {
         document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
     }
     
-    // วางทั้ง 2 มือเสมอ
     for (let i = 0; i < len; i++) {
         state.notes.right[startB + i] = customClipboard.data.right != null ? customClipboard.data.right[i] : null;
         state.notes.left[startB + i]  = customClipboard.data.left  != null ? customClipboard.data.left[i]  : null;
@@ -1293,7 +1350,6 @@ function pasteMultiRooms() {
     pushUndo();
     const len = customClipboard.length;
 
-    // คำนวณความยาวสูงสุดที่ต้องการก่อน แล้วขยายตารางครั้งเดียว
     const maxNeeded = Math.max(...Array.from(state.selectedRooms).map(k => parseInt(k.split(':')[1]) * 4 + len));
     while (totalBeats() < maxNeeded) {
         state.numBars += BARS_PER_VAK;
@@ -1327,52 +1383,97 @@ function pasteMultiRooms() {
     showToast('วางโน้ตเข้าห้องที่เลือกเรียบร้อย', 'success');
 }
 
-// ---------------------------------------------
+function deleteLine(lineIndex) {
+    if (state.numBars <= BARS_PER_VAK) { showToast('ต้องมีอย่างน้อย 1 บรรทัด', 'error'); return; }
+    pushUndo();
+    const startIdx = lineIndex * 32;
+    state.notes.right.splice(startIdx, 32);
+    state.notes.left.splice(startIdx, 32);
+    state.numBars -= BARS_PER_VAK;
+    document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
-function playCurrentRoom() {
-  hideCellMenus();
-  if (state.cursorBeat === -1) return;
-  if (state.isPlaying) stopPlayback(true);
-  unlockAudio(); const ctx = ac(); if (!ctx) return;
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
-
-  const barIndex = Math.floor(state.cursorBeat / 4);
-  const startBeat = barIndex * 4;
-  
-  state.playMode = 'section'; 
-  state.selectionHands = ['right', 'left']; 
-  playbackSeq = [startBeat, startBeat + 1, startBeat + 2, startBeat + 3];
-  
-  state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
-  playbackActiveMasters = []; playbackVisualTimers = [];
-  const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
-  scheduler();
+    const newSec = {}; const newRep = {};
+    const totalLinesOld = (state.numBars + 8) / 8;
+    for (let i = 1; i <= totalLinesOld; i++) {
+        if (i < lineIndex + 1) {
+            if (state.sections[i]) newSec[i] = state.sections[i];
+            if (state.repeats[i]) newRep[i] = state.repeats[i];
+        } else if (i > lineIndex + 1) {
+            if (state.sections[i]) newSec[i - 1] = state.sections[i];
+            if (state.repeats[i]) {
+                let target = state.repeats[i];
+                if (target > lineIndex + 1) target--;
+                newRep[i - 1] = target;
+            }
+        }
+    }
+    state.sections = newSec; state.repeats = newRep;
+    if (state.cursorBeat >= state.notes.right.length) state.cursorBeat = -1;
+    renderNotation();
+    showToast('ลบบรรทัดเรียบร้อย', 'success');
 }
 
-function playSelectedRooms() {
-  if (!state.selectedRooms || state.selectedRooms.size === 0) return;
-  if (state.isPlaying) stopPlayback(true); unlockAudio(); const ctx = ac(); if (!ctx) return;
-  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+function insertLine(lineIndex) {
+    pushUndo();
+    const insertAt = (lineIndex + 1) * 32;
+    const nulls = new Array(32).fill(null);
+    state.notes.right.splice(insertAt, 0, ...nulls);
+    state.notes.left.splice(insertAt, 0, ...nulls);
+    state.numBars += BARS_PER_VAK;
+    document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
-  const bars = Array.from(state.selectedRooms).map(k => parseInt(k.split(':')[1]));
-  const uniqueBars = [...new Set(bars)].sort((a, b) => a - b);
-  
-  const seq = [];
-  uniqueBars.forEach(bar => {
-      const startB = bar * 4;
-      for(let i=0; i<4; i++) {
-          if (startB + i < totalBeats()) seq.push(startB + i);
-      }
-  });
+    const newSec = {}; const newRep = {};
+    const totalLinesNew = state.numBars / 8;
+    for (let i = totalLinesNew; i >= 1; i--) {
+        if (i <= lineIndex + 1) {
+            if (state.sections[i]) newSec[i] = state.sections[i];
+            if (state.repeats[i]) newRep[i] = state.repeats[i];
+        } else {
+            if (state.sections[i - 1]) newSec[i] = state.sections[i - 1];
+            if (state.repeats[i - 1]) {
+                let target = state.repeats[i - 1];
+                if (target > lineIndex + 1) target++;
+                newRep[i] = target;
+            }
+        }
+    }
+    state.sections = newSec; state.repeats = newRep;
+    if (state.cursorBeat >= insertAt) state.cursorBeat += 32;
+    renderNotation();
+    showToast('แทรกบรรทัดใหม่แล้ว', 'success');
+}
 
-  if (seq.length === 0) return;
+function moveLineUp(lineIndex) {
+    if (lineIndex <= 0) return;
+    pushUndo();
+    const startA = (lineIndex - 1) * 32;
+    const startB = lineIndex * 32;
 
-  state.playMode = 'section'; state.selectionHands = ['right', 'left'];
-  playbackSeq = seq;
-  state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
-  playbackActiveMasters = []; playbackVisualTimers = [];
-  const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
-  scheduler();
+    const chunkRA = state.notes.right.splice(startA, 32);
+    const chunkLA = state.notes.left.splice(startA, 32);
+
+    state.notes.right.splice(startA + 32, 0, ...chunkRA);
+    state.notes.left.splice(startA + 32, 0, ...chunkLA);
+
+    const L1 = lineIndex; const L2 = lineIndex + 1;
+    const tempSec = state.sections[L1];
+    if (state.sections[L2]) state.sections[L1] = state.sections[L2]; else delete state.sections[L1];
+    if (tempSec) state.sections[L2] = tempSec; else delete state.sections[L2];
+
+    const tempRep = state.repeats[L1];
+    if (state.repeats[L2]) state.repeats[L1] = state.repeats[L2]; else delete state.repeats[L1];
+    if (tempRep) state.repeats[L2] = tempRep; else delete state.repeats[L2];
+
+    if (state.cursorBeat >= startA && state.cursorBeat < startA + 32) state.cursorBeat += 32;
+    else if (state.cursorBeat >= startA + 32 && state.cursorBeat < startA + 64) state.cursorBeat -= 32;
+
+    renderNotation();
+}
+
+function moveLineDown(lineIndex) {
+    const totalLines = state.numBars / BARS_PER_VAK;
+    if (lineIndex >= totalLines - 1) return;
+    moveLineUp(lineIndex + 1);
 }
 
 function countNotes(hand) { return state.notes[hand].filter(n => n !== null).length; }
@@ -1437,10 +1538,8 @@ function renderNotation() {
     const thisSecStart = currentSectionStartLine; 
     const displayLineNum = lineNum - thisSecStart + 1;
 
-    // --- Section Header UI ---
     const secHeader = document.createElement('div'); secHeader.className = 'section-header';
     
-    // เช็คว่ามีชื่อท่อนถูกตั้งไว้ที่บรรทัดนี้หรือไม่ (ไม่บังคับว่าบรรทัด 1 ต้องมี)
     if (state.sections[lineNum] !== undefined) {
        const secName = state.sections[lineNum];
        if (state._editingSection === lineNum) {
@@ -1490,9 +1589,11 @@ function renderNotation() {
     });
 
     lineWrap.appendChild(secHeader);
-    // -------------------------
 
     const pair = document.createElement('div'); pair.className = 'bar-pair'; 
+    const vakLabelCol = document.createElement('div');
+    vakLabelCol.className = 'vak-label-col';
+    
     const vakLabel = document.createElement('div'); vakLabel.className = 'vak-label';
     
     const isPlayingThisLine = state.isPlaying && state.playMode === 'line' && state.currentPlayingLine === lineNum;
@@ -1505,7 +1606,25 @@ function renderNotation() {
       <div class="line-num">${displayLineNum}</div>
     `;
     vakLabel.querySelector('.line-play-btn').addEventListener('click', () => { playLine(lineNum); });
-    pair.appendChild(vakLabel);
+    
+    const lineActionBar = document.createElement('div');
+    lineActionBar.className = 'line-action-bar';
+    lineActionBar.innerHTML = `
+      <button class="btn-line" title="เลื่อนบรรทัดขึ้น" ${line === 0 ? 'disabled' : ''}>▲</button>
+      <button class="btn-line" title="เลื่อนบรรทัดลง" ${line === lines - 1 ? 'disabled' : ''}>▼</button>
+      <button class="btn-line" title="แทรกบรรทัดด้านล่าง">➕</button>
+      <button class="btn-line del" title="ลบบรรทัดนี้">🗑</button>
+    `;
+    
+    const lineBtns = lineActionBar.querySelectorAll('.btn-line');
+    lineBtns[0].addEventListener('click', () => moveLineUp(line));
+    lineBtns[1].addEventListener('click', () => moveLineDown(line));
+    lineBtns[2].addEventListener('click', () => insertLine(line));
+    lineBtns[3].addEventListener('click', () => deleteLine(line));
+
+    vakLabelCol.appendChild(vakLabel);
+    vakLabelCol.appendChild(lineActionBar);
+    pair.appendChild(vakLabelCol);
     
     const rowsContainer = document.createElement('div'); rowsContainer.className = 'bar-rows-container';
     
@@ -1517,7 +1636,7 @@ function renderNotation() {
       label.textContent = hand === 'right' ? 'มือขวา' : 'มือซ้าย'; row.appendChild(label);
 
       for (let b = startBar; b < endBar; b++) {
-        const barInLine = b - startBar + 1; // 1–8 ภายในบรรทัดนั้น
+        const barInLine = b - startBar + 1; 
         const barCell = document.createElement('div'); barCell.className = 'bar-cell'; barCell.title = `ห้อง ${barInLine}`;
         
         const roomKey = `${hand}:${b}`;
@@ -1623,6 +1742,52 @@ function getPlaybackSequence() {
     currentLine++;
   }
   return seq;
+}
+
+function playCurrentRoom() {
+  hideCellMenus();
+  if (state.cursorBeat === -1) return;
+  if (state.isPlaying) stopPlayback(true);
+  unlockAudio(); const ctx = ac(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+  const barIndex = Math.floor(state.cursorBeat / 4);
+  const startBeat = barIndex * 4;
+  
+  state.playMode = 'section'; 
+  state.selectionHands = ['right', 'left']; 
+  playbackSeq = [startBeat, startBeat + 1, startBeat + 2, startBeat + 3];
+  
+  state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
+  playbackActiveMasters = []; playbackVisualTimers = [];
+  const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
+  scheduler();
+}
+
+function playSelectedRooms() {
+  if (!state.selectedRooms || state.selectedRooms.size === 0) return;
+  if (state.isPlaying) stopPlayback(true); unlockAudio(); const ctx = ac(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+
+  const bars = Array.from(state.selectedRooms).map(k => parseInt(k.split(':')[1]));
+  const uniqueBars = [...new Set(bars)].sort((a, b) => a - b);
+  
+  const seq = [];
+  uniqueBars.forEach(bar => {
+      const startB = bar * 4;
+      for(let i=0; i<4; i++) {
+          if (startB + i < totalBeats()) seq.push(startB + i);
+      }
+  });
+
+  if (seq.length === 0) return;
+
+  state.playMode = 'section'; state.selectionHands = ['right', 'left'];
+  playbackSeq = seq;
+  state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
+  playbackActiveMasters = []; playbackVisualTimers = [];
+  const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
+  scheduler();
 }
 
 function playSection(startLine) {
@@ -1877,10 +2042,20 @@ function scheduleBeat(step, time) {
   const msUi = Math.max(0, (time - ctx.currentTime) * 1000);
   playbackVisualTimers.push(setTimeout(() => {
       if (!state.isPlaying) return; state.currentBeat = beat;
-      document.getElementById('beatValue').textContent = `Step ${step + 1} / ${playbackSeq.length}`;
+      const bVal = document.getElementById('beatValue'); if(bVal) bVal.textContent = `Step ${step + 1} / ${playbackSeq.length}`;
       const pct = Math.round((step / Math.max(1, playbackSeq.length - 1)) * 100);
       const bar = document.getElementById('playbackBar'); if (bar) bar.style.width = pct + '%';
-      renderNotation();
+      
+      document.querySelectorAll('.beat-cell.current-beat').forEach(c => c.classList.remove('current-beat'));
+      const activeCells = document.querySelectorAll(`.beat-cell[data-beat="${beat}"]`);
+      activeCells.forEach(c => c.classList.add('current-beat'));
+
+      if (activeCells.length > 0) {
+         const rect = activeCells[0].getBoundingClientRect();
+         if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
+             activeCells[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+         }
+      }
   }, msUi));
 }
 
@@ -1892,6 +2067,8 @@ function stopPlayback(cutAudio = false) {
   if (schedulerTimer) clearTimeout(schedulerTimer); if (playbackEndTimer) clearTimeout(playbackEndTimer);
   playbackVisualTimers.forEach(clearTimeout); playbackVisualTimers = [];
 
+  document.querySelectorAll('.beat-cell.current-beat').forEach(c => c.classList.remove('current-beat'));
+
   if (cutAudio && audioCtx) {
     const now = audioCtx.currentTime;
     for (const master of playbackActiveMasters) {
@@ -1899,7 +2076,7 @@ function stopPlayback(cutAudio = false) {
       try { master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value || 0, now); master.gain.linearRampToValueAtTime(0, now + 0.05); } catch (_) {}
     }
   }
-  playbackActiveMasters = []; document.getElementById('beatValue').textContent = '— / —'; renderNotation();
+  playbackActiveMasters = []; document.getElementById('beatValue').textContent = '— / —'; 
 }
 
 let isExporting = false;
@@ -2014,6 +2191,9 @@ function exportText() {
   a.download = `${safeName}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.txt`;
   a.click();
 }
+
+const isIframe = window !== window.parent;
+const hasFSAPI = !isIframe && ('showSaveFilePicker' in window) && ('showOpenFilePicker' in window);
 
 async function executeImport() {
   if (hasFSAPI) {
@@ -2191,7 +2371,6 @@ function appendNewVak() {
 }
 
 const LS_KEY = 'kwyi_autosave';
-const hasFSAPI = ('showSaveFilePicker' in window) && ('showOpenFilePicker' in window);
 let currentFileHandle = null;
 
 function buildSaveData() {
@@ -2273,7 +2452,6 @@ function initTouchKeyboard() {
   const modIds = { tab: 'tkModTab', shift: 'tkModShift', up: 'tkModUp', down: 'tkModDown' };
   const bannerMessages = { none: 'แตะปุ่มด้านบนค้างไว้ แล้วกดโน้ต', tab: 'โหมด คู่ 8 — โน้ตต่ำ → มือซ้าย · โน้ตสูง → มือขวา', shift: 'โหมด คู่ 4 — ลงโน้ตคู่ 4 ทั้งสองมืออัตโนมัติ', up: 'โหมด ↑ มือขวา — โน้ตทุกตัวลงมือขวาเท่านั้น', down: 'โหมด ↓ มือซ้าย — โน้ตทุกตัวลงมือซ้ายเท่านั้น' };
 
-  // ระบบย่อ/ขยายแป้นพิมพ์
   const tkToggleBtn = document.getElementById('tkToggleBtn');
   let isKbCollapsed = false;
 
@@ -2284,7 +2462,6 @@ function initTouchKeyboard() {
     }
   }
 
-  // วัดความสูงแป้นหลัง render ครั้งแรก
   requestAnimationFrame(() => { requestAnimationFrame(updateKbHeight); });
   window.addEventListener('resize', updateKbHeight);
 
@@ -2305,7 +2482,6 @@ function initTouchKeyboard() {
       });
   }
 
-  // ติดตั้งปุ่ม เล่น/หยุด ที่เพิ่มเข้ามาสำหรับมือถือ
   document.getElementById('tkPlayMain')?.addEventListener('pointerdown', (e) => { e.preventDefault(); startPlayback(); });
   document.getElementById('tkStopMain')?.addEventListener('pointerdown', (e) => { e.preventDefault(); stopPlayback(true); });
 
@@ -2333,8 +2509,8 @@ function initTouchKeyboard() {
 
 function init() {
   ensureCapacity(); renderGongs(); renderNotation(); updateCounts(); updateCursorStatus(); updateHandSwitcher(); initTouchKeyboard(); initSaveSystem();
-  updatePageTitle(); // ซิงค์ title tab กับชื่อเพลงที่โหลดจาก localStorage
-  updateUndoUI(); // ซิงค์ปุ่ม Undo / Redo ตอนเริ่มต้น
+  updatePageTitle(); 
+  updateUndoUI(); 
 
   document.getElementById('songName').addEventListener('input', (e) => { 
     state.songName = e.target.value; 
@@ -2359,7 +2535,6 @@ function init() {
   document.getElementById('handRight').addEventListener('click', () => { state.hand = 'right'; updateHandSwitcher(); updateCursorStatus(); renderNotation(); });
   document.getElementById('handLeft').addEventListener('click', () => { state.hand = 'left'; updateHandSwitcher(); updateCursorStatus(); renderNotation(); });
   
-  // แจ้งเตือน Modal ก่อนเคลียร์ตาราง
   document.getElementById('clearBtn').addEventListener('click', () => {
     document.getElementById('clearConfirmModal').classList.add('show');
   });
@@ -2375,7 +2550,6 @@ function init() {
     showToast('ล้างตารางเรียบร้อย');
   });
 
-  // Modal สำหรับ เลือกเล่นเป็นช่วง (จัดการ Event ให้ถูกต้อง)
   document.getElementById('cancelPlayRangeBtn').addEventListener('click', () => {
     document.getElementById('playRangeModal').classList.remove('show');
   });
@@ -2395,7 +2569,6 @@ function init() {
     }
   });
   
-  // จัดการ Dropdown Export ใหม่
   const exportMainBtn = document.getElementById('exportMainBtn');
   const exportMenu = document.getElementById('exportMenu');
 
@@ -2417,7 +2590,6 @@ function init() {
 
   document.getElementById('importBtn').addEventListener('click', executeImport);
 
-  // Floating Menu Actions
   document.getElementById('camPlay')?.addEventListener('click', (e) => { e.preventDefault(); playCurrentRoom(); });
   document.getElementById('camCopy')?.addEventListener('click', (e) => { e.preventDefault(); copyRoom(); });
   document.getElementById('camPaste')?.addEventListener('click', (e) => { e.preventDefault(); pasteRoom(); });
@@ -2426,7 +2598,7 @@ function init() {
       e.preventDefault(); 
       if (state.cursorBeat !== -1) {
           const activeBar = Math.floor(state.cursorBeat / 4);
-          state.cursorBeat = activeBar * 4; // ไปที่โน้ตตัวแรกของห้อง
+          state.cursorBeat = activeBar * 4; 
           state.isEditMode = true; 
           renderNotation(); 
           hideCellMenus();
@@ -2447,7 +2619,6 @@ function init() {
       document.getElementById('msmPaste').disabled = !customClipboard;
   });
   
-  // Multi-Select Actions
   document.getElementById('msmCopy')?.addEventListener('click', (e) => { e.preventDefault(); copyMultiRooms(); });
   document.getElementById('msmPaste')?.addEventListener('click', (e) => { e.preventDefault(); pasteMultiRooms(); });
   document.getElementById('msmCancel')?.addEventListener('click', (e) => {
@@ -2486,11 +2657,9 @@ function init() {
 
   const notationDiv = document.getElementById('notation');
   
-  // Unified Pointer Events สำหรับคลิกและสัมผัส
-  notationDiv.addEventListener('click', (e) => { // เปลี่ยนจาก pointerdown เป็น click ให้สามารถเลื่อนจอบนมือถือได้เวลาแตะผ่าน
+  notationDiv.addEventListener('click', (e) => { 
     const cell = e.target.closest('.beat-cell'); 
     if (!cell) return;
-    // ไม่ใช้ e.preventDefault() เพื่อให้สามารถ Scroll หน้าจอในมือถือ/iPad ได้ตามปกติ
 
     const beat = parseInt(cell.dataset.beat); 
     const hand = cell.dataset.hand;
@@ -2499,7 +2668,6 @@ function init() {
     const roomKey = `${hand}:${clickedBar}`;
 
     if (state.isMultiSelectMode) {
-        // Multi-select: เลือกทั้ง 2 มือของห้องนั้นพร้อมกัน
         const rightKey = `right:${clickedBar}`;
         const leftKey  = `left:${clickedBar}`;
         const alreadySelected = state.selectedRooms.has(rightKey) || state.selectedRooms.has(leftKey);
@@ -2514,19 +2682,16 @@ function init() {
         return;
     }
 
-    // หากคลิกในห้องเดียวกันภายใน 350ms ถือเป็นการ Double Tap
     if (lastTap.beat !== -1 && Math.floor(lastTap.beat / 4) === clickedBar && (now - lastTap.time < 350)) {
-        // Double tap → เข้าโหมดแก้ไข ตามมือที่แตะ
-        state.cursorBeat = clickedBar * 4; // ไปยังโน้ตตัวแรกของห้องนั้น
+        state.cursorBeat = clickedBar * 4; 
         state.hand = hand;
         state.isEditMode = true;
         renderNotation();
         updateCursorStatus();
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellEditMenu'));
-        lastTap.time = 0; // รีเซ็ตกันเบิ้ล
+        lastTap.time = 0; 
     } else {
-        // Single Tap → Active Room ทั้งสองมือพร้อมกัน
         state.cursorBeat = beat; 
         state.hand = hand;
         state.isEditMode = false;
@@ -2538,15 +2703,14 @@ function init() {
     }
   });
 
-  // คลิกพื้นที่ว่างเพื่อออก
   document.addEventListener('pointerdown', (e) => {
-      // ยกเว้นพื้นที่ที่ใช้งาน (ตาราง, เมนูลอย, คีย์บอร์ด, ปุ่มควบคุม)
       if (e.target.closest('.beat-cell') || 
           e.target.closest('.touch-sel-menu') || 
           e.target.closest('.touch-keyboard') || 
           e.target.closest('.controls') ||
           e.target.closest('.line-play-btn') ||
-          e.target.closest('.section-header')) {
+          e.target.closest('.section-header') ||
+          e.target.closest('.line-action-bar')) {
           return;
       }
       if (state.isMultiSelectMode) {
@@ -2592,7 +2756,6 @@ function init() {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
     const code = e.code;
     
-    // ระบบ Undo / Redo Shortcuts
     if (e.ctrlKey || e.metaKey) {
       if (code === 'KeyY' || (code === 'KeyZ' && e.shiftKey)) { e.preventDefault(); performRedo(); return; }
       if (code === 'KeyZ' && !e.shiftKey) { e.preventDefault(); performUndo(); return; }
@@ -2635,11 +2798,9 @@ function init() {
   window.addEventListener('blur', () => { pressedCodes.clear(); tabHeld = shiftHeld = arrowUpHeld = arrowDownHeld = false; updateModUIState(); });
 }
 
-// ===================== Export PDF =====================
 function exportPDF() {
   if (chordTimer) { clearTimeout(chordTimer); commitChord(); }
 
-  // ใช้ตัวอักษรโน้ตที่มีสัญลักษณ์ ฺ และ ํ ของจริง
   const NOTE_CHARS = ['มฺ','ฟฺ','ซฺ','ลฺ','ทฺ','ด','ร','ม','ฟ','ซ','ล','ท','ดํ','รํ','มํ','ฟํ'];
   
   function noteHTML(idx) {
@@ -2648,34 +2809,30 @@ function exportPDF() {
   }
 
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR; // 32
+  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
   const songTitle = (state.songName && state.songName.trim()) ? state.songName.trim() : 'ไม่มีชื่อเพลง';
 
-  // Build content blocks
   let contentHTML = '';
 
   for (let line = 0; line < totalLines; line++) {
     const lineNum = line + 1;
 
-    // Section header (ท่อน) — แสดงก่อนตาราง ถ้ามี
     const secName = (state.sections && state.sections[lineNum] !== undefined) ? state.sections[lineNum] : null;
     if (secName !== null) {
       contentHTML += `<div class="section-label">${secName}</div>`;
     }
 
-    // Build 8 bars × 4 beats = 32 cells per row
     let topCells = '', botCells = '';
     for (let b = 0; b < beatsPerLine; b++) {
       const globalBeat = line * beatsPerLine + b;
       const rn = state.notes.right[globalBeat];
       const ln = state.notes.left[globalBeat];
-      const isBarEnd = (b + 1) % 4 === 0; // กั้นห้องทุกๆ 4 จังหวะ
+      const isBarEnd = (b + 1) % 4 === 0;
       const barEndClass = isBarEnd ? ' bar-end' : '';
       topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
       botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
     }
 
-    // กลับต้น: ตรวจ state.repeats[lineNum]
     const hasRepeat = state.repeats && state.repeats[lineNum] !== undefined;
 
     contentHTML += `
@@ -2695,23 +2852,19 @@ function exportPDF() {
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<!-- บังคับ viewport เป็น 1024 เพื่อให้มือถือ Zoom-out แสดงหน้าจอเหมือน Desktop (ตารางโน้ตจะได้ไม่พัง) -->
 <meta name="viewport" content="width=1024">
-<!-- ตั้ง Title ให้เป็นชื่อเพลง เพื่อให้ตอน Save as PDF (หรือ Print) ได้ชื่อไฟล์ตามชื่อเพลง -->
 <title>${songTitle}</title> 
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
-  /* ===== ตั้งค่ากระดาษ พิมพ์ให้แน่ใจว่าเป็น A4 ===== */
   @page {
     size: A4 portrait;
-    margin-top: 0; /* ซ่อน header อัตโนมัติ (วันที่/เวลา) ด้านบน */
+    margin-top: 0; 
     margin-bottom: 0.5in; 
     margin-left: 0.5in;
     margin-right: 0.5in;
-    /* การใส่เลขหน้าด้วย CSS (ใช้ได้กับบางเบราว์เซอร์) */
     @bottom-right {
       content: "หน้า " counter(page) " / " counter(pages);
       font-family: 'Sarabun', sans-serif;
@@ -2721,7 +2874,7 @@ function exportPDF() {
 
   body {
     font-family: 'Sarabun', 'TH Sarabun New', 'Noto Sans Thai', serif;
-    background: #ffffff !important; /* กระดาษสีขาวเท่านั้น */
+    background: #ffffff !important; 
     color: #000000;
     font-size: 14px;
     line-height: 1.4;
@@ -2736,7 +2889,6 @@ function exportPDF() {
     }
   }
 
-  /* ===== หัวเรื่อง ===== */
   .doc-title {
     text-align: center;
     font-size: 18px;
@@ -2745,7 +2897,6 @@ function exportPDF() {
     letter-spacing: 0.01em;
   }
 
-  /* ===== ชื่อท่อน ===== */
   .section-label {
     font-size: 14px;
     font-weight: 700;
@@ -2754,7 +2905,6 @@ function exportPDF() {
     text-align: left;
   }
 
-  /* ===== ตาราง ===== */
   .line-block {
     margin-bottom: 14px;
     page-break-inside: avoid;
@@ -2775,27 +2925,22 @@ function exportPDF() {
     vertical-align: middle;
   }
 
-  /* เส้นขอบตารางรูปแบบดั้งเดิม */
   .top-row td:first-child, .bot-row td:first-child { border-left: 1px solid #000; }
   .top-row td:last-child,  .bot-row td:last-child  { border-right: 1px solid #000; }
   .top-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; }
   .bot-row td { border-bottom: 1px solid #000; }
-
-  /* เส้นแนวตั้งกั้นห้อง (ทุกๆ 4 จังหวะ) */
   td.nc.bar-end { border-right: 1px solid #000; }
 
-  /* ===== ตัวโน้ต ===== */
   .note, .rest {
     display: inline-block;
-    height: 14px;          /* บังคับความสูงตายตัวไม่ให้ดันเซลล์ตาราง */
-    line-height: 14px;     /* จัดกึ่งกลางแนวตั้งในตัวเอง */
+    height: 14px;          
+    line-height: 14px;     
     font-size: 13px;
     text-align: center;
     vertical-align: middle;
   }
   .rest { color: #000; }
 
-  /* ===== กลับต้น ===== */
   .repeat-label {
     text-align: right;
     font-size: 12px;
@@ -2804,12 +2949,11 @@ function exportPDF() {
     padding-right: 2px;
   }
 
-  /* ===== ปุ่มพิมพ์ (ซ่อนตอน print) ===== */
   .print-btn {
     position: fixed; bottom: 40px; left: 50%;
     transform: translateX(-50%);
     background: #000; color: #fff; border: none;
-    padding: 24px 40px; font-size: 26px; /* ขยายขนาดใหญ่เพื่อให้ดูพอดีเมื่อมือถือซูมออก */
+    padding: 24px 40px; font-size: 26px; 
     font-family: 'Sarabun', sans-serif;
     font-weight: 700; cursor: pointer;
     border-radius: 12px;
@@ -2825,14 +2969,12 @@ function exportPDF() {
 
   @media print {
     .print-btn { display: none !important; }
-    /* นำ padding ออก เพราะเราใช้เทคนิค <thead> ดันพื้นที่แทนในทุกหน้า */
     body { padding: 0; background: #ffffff !important; }
   }
 </style>
 </head>
 <body>
 
-<!-- ใช้เทคนิคตารางครอบ + THEAD เพื่อสร้างระยะเว้นด้านบน 0.6 นิ้ว ในทุกๆ หน้าที่ปรินท์ -->
 <table style="width: 100%; border: none; border-collapse: collapse;">
   <thead>
     <tr><th style="height: 0.6in; padding: 0; border: none;"></th></tr>
@@ -2851,16 +2993,429 @@ function exportPDF() {
 </body>
 </html>`;
 
-  const w = window.open('', '_blank', 'width=900,height=800');
-  if (!w) { showToast('ไม่สามารถเปิดหน้าต่างใหม่ได้ กรุณาอนุญาต Pop-up', 'error'); return; }
-  w.document.write(printHTML);
-  w.document.close();
-  w.document.title = songTitle; // บังคับเปลี่ยน title ของหน้าต่างอีกครั้งเพื่อความชัวร์ในการดึงไปเป็นชื่อไฟล์
-  showToast('เปิดหน้าตารางโน้ต PDF แล้ว กด "พิมพ์ / บันทึก PDF" หรือ Ctrl+P', 'success');
+  try {
+      const w = window.open('', '_blank', 'width=900,height=800');
+      if (!w) { showToast('กรุณาอนุญาต Pop-up เพื่อเปิดหน้า PDF', 'error'); return; }
+      w.document.write(printHTML);
+      w.document.close();
+      w.document.title = songTitle; 
+      showToast('เปิดหน้าตารางโน้ต PDF แล้ว กด "พิมพ์ / บันทึก PDF"', 'success');
+  } catch(e) {
+      showToast('ไม่สามารถสร้างหน้าต่าง PDF ได้ในหน้าจอนี้', 'error');
+  }
 }
-// ======================================================
+
+const PDF_IMPORT = (() => {
+  'use strict';
+
+  const NOTE_IDX = {
+    'มฺ':0,'ฟฺ':1,'ซฺ':2,'ลฺ':3,'ทฺ':4,
+    'ด':5,'ร':6,'ม':7,'ฟ':8,'ซ':9,'ล':10,'ท':11,
+    'ดํ':12,'รํ':13,'มํ':14,'ฟํ':15
+  };
+  
+  const FALLBACK_NOTES = {
+    'ดฺ': 5, 'รฺ': 6, 'ซํ': 9, 'ลํ': 10, 'ทํ': 11
+  };
+  
+  const REST_CHARS = new Set(['-','–','—','−','_','~','x','X','○','o','0']);
+  const TOKEN_RE = /(ดํ|รํ|มํ|ฟํ|มฺ|ฟฺ|ซฺ|ลฺ|ทฺ|ด|ร|ม|ฟ|ซ|ล|ท|[-–—−_~xX○o])/g;
+
+  function tokenizeLine(text) {
+    return [...text.matchAll(TOKEN_RE)].map(m => m[1]);
+  }
+
+  function tokenToIndex(tok) {
+    if (REST_CHARS.has(tok)) return null;   
+    if (NOTE_IDX[tok] !== undefined) return NOTE_IDX[tok];
+    if (FALLBACK_NOTES[tok] !== undefined) return FALLBACK_NOTES[tok];
+    const baseNote = tok.replace(/[ฺํ]/g, '');
+    if (NOTE_IDX[baseNote] !== undefined) return NOTE_IDX[baseNote];
+    return null;
+  }
+
+  let pdfLibReady = false;
+  let pdfLibLoading = false;
+  let pdfLibCallbacks = [];
+
+  function loadPdfJs() {
+    return new Promise((resolve, reject) => {
+      if (pdfLibReady) { resolve(); return; }
+      pdfLibCallbacks.push({ resolve, reject });
+      if (pdfLibLoading) return;
+      pdfLibLoading = true;
+
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+      s.onload = () => {
+        try {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          pdfLibReady = true;
+          pdfLibCallbacks.forEach(cb => cb.resolve());
+        } catch(e) { pdfLibCallbacks.forEach(cb => cb.reject(e)); }
+        pdfLibCallbacks = [];
+      };
+      s.onerror = () => {
+        const err = new Error('โหลด pdf.js ไม่สำเร็จ');
+        pdfLibCallbacks.forEach(cb => cb.reject(err));
+        pdfLibCallbacks = []; pdfLibLoading = false;
+      };
+      document.head.appendChild(s);
+    });
+  }
+
+  async function extractPdfPages(arrayBuffer, onProgress) {
+    const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const pages = [];
+    for (let p = 1; p <= pdf.numPages; p++) {
+      onProgress(p, pdf.numPages);
+      const page = await pdf.getPage(p);
+      const tc = await page.getTextContent({ normalizeWhitespace: false });
+
+      const items = tc.items.filter(it => it.str && it.str.trim() !== '');
+      const groups = [];
+      for (const it of items) {
+        const y = Math.round(it.transform[5]);
+        const x = it.transform[4];
+        let placed = false;
+        for (const g of groups) {
+          if (Math.abs(g.y - y) <= 3) {
+            g.items.push({ x, str: it.str });
+            placed = true; break;
+          }
+        }
+        if (!placed) groups.push({ y, items: [{ x, str: it.str }] });
+      }
+
+      groups.sort((a, b) => b.y - a.y);
+      const lines = groups.map(g => {
+        g.items.sort((a, b) => a.x - b.x);
+        return g.items; 
+      });
+
+      pages.push(lines);
+    }
+    return pages;
+  }
+
+  function parseAllLines(allLines) {
+    const result = { songName: '', vaks: [] };
+
+    const annotated = allLines.map(lineItems => {
+      const t = lineItems.map(it => it.str).join(' ').trim();
+      const tokens = tokenizeLine(t);
+      const noteCount = tokens.length;
+      const isRepeat = /กลับต้น/.test(t);
+      const isPageNum = /^หน้า\s*\d/.test(t) || /^©/.test(t) || /^\d+\s*\/\s*\d+$/.test(t);
+      
+      const textNoSpace = t.replace(/\s+/g, '');
+      const validTokensLen = tokens.join('').length;
+      const noteRatio = textNoSpace.length > 0 ? validTokensLen / textNoSpace.length : 0;
+      const isNoteRow = noteCount >= 4 && noteRatio > 0.4;
+
+      const isSectionCandidate = !isNoteRow && !isPageNum && !isRepeat
+        && t.length >= 1 && t.length <= 60 && !t.startsWith('เพลง');
+        
+      return { text: t, items: lineItems, tokens, noteCount, isNoteRow, isRepeat, isPageNum, isSectionCandidate };
+    });
+
+    for(let i=0; i < Math.min(10, annotated.length); i++) {
+        const a = annotated[i];
+        if (a.text.startsWith('เพลง') && a.text.length > 4) { result.songName = a.text.replace(/^เพลง/, '').trim(); break; }
+        if (a.text.length >= 2 && a.text.length <= 80 && a.noteCount === 0 && !a.isPageNum) { result.songName = a.text; break; }
+    }
+    
+    if (result.songName) {
+        annotated.forEach(a => { if (a.text === result.songName) a.isSectionCandidate = false; });
+    }
+
+    let globalMinX = Infinity;
+    let globalMaxX = -Infinity;
+    annotated.filter(a => a.isNoteRow).forEach(a => {
+        a.items.forEach(it => {
+            if (tokenizeLine(it.str).length > 0) {
+                if (it.x < globalMinX) globalMinX = it.x;
+                if (it.x > globalMaxX) globalMaxX = it.x;
+            }
+        });
+    });
+
+    if (globalMaxX <= globalMinX) { globalMinX = 50; globalMaxX = 500; }
+    const colSpacing = (globalMaxX - globalMinX) / 7;
+
+    let pendingSection = null;
+    let i = 0;
+
+    while (i < annotated.length) {
+      const a = annotated[i];
+
+      if (a.isPageNum || a.text === '' || a.text.startsWith('เพลง')) { i++; continue; }
+      if (a.isSectionCandidate) { pendingSection = a.text; i++; continue; }
+
+      if (a.isNoteRow) {
+        let botIdx = -1;
+        for (let j = i + 1; j < Math.min(i + 4, annotated.length); j++) {
+          if (annotated[j].isNoteRow) { botIdx = j; break; }
+          if (annotated[j].isSectionCandidate || annotated[j].isRepeat) break;
+        }
+
+        const BEATS = 32;
+        const topArr = new Array(BEATS).fill(null);
+        const botArr = new Array(BEATS).fill(null);
+
+        const fillSpatial = (items, targetArr) => {
+            const measures = Array.from({length: 8}, () => []);
+            items.forEach(it => {
+                let colIdx = Math.round((it.x - globalMinX) / colSpacing);
+                if (colIdx < 0) colIdx = 0;
+                if (colIdx > 7) colIdx = 7;
+                measures[colIdx].push(...tokenizeLine(it.str));
+            });
+
+            for (let m = 0; m < 8; m++) {
+                const notes = measures[m].map(tokenToIndex); 
+                const startBeat = m * 4;
+                const putCount = Math.min(4, notes.length);
+                for (let k = 0; k < putCount; k++) {
+                    targetArr[startBeat + (4 - putCount) + k] = notes[notes.length - putCount + k];
+                }
+            }
+        };
+
+        fillSpatial(a.items, topArr);
+
+        let nextI = i + 1;
+        if (botIdx !== -1) {
+          fillSpatial(annotated[botIdx].items, botArr);
+          nextI = botIdx + 1;
+        }
+
+        let hasRepeat = false;
+        for (let k = i; k < Math.min(nextI + 1, annotated.length); k++) {
+          if (annotated[k].isRepeat || /กลับต้น/.test(annotated[k].text)) { hasRepeat = true; break; }
+        }
+
+        result.vaks.push({
+          section: pendingSection,
+          right: topArr,
+          left: botArr,
+          repeat: false 
+        });
+        
+        pendingSection = null;
+        i = nextI;
+        continue;
+      }
+      i++;
+    }
+    return result;
+  }
+
+  function applyParsed(parsed) {
+    if (parsed.vaks.length === 0) throw new Error('ไม่พบโน้ตในไฟล์ PDF นี้ หรืออาจจะอ่านไม่ออกเนื่องจากเป็นภาพสแกน');
+
+    pushUndo();
+
+    state.songName = parsed.songName || '';
+    document.getElementById('songName').value = state.songName;
+    updatePageTitle();
+
+    const numVaks = parsed.vaks.length;
+    state.numBars = numVaks * BARS_PER_VAK;
+    document.getElementById('numVak').value = numVaks;
+
+    state.sections = {};
+    state.repeats  = {};
+    state._editingSection = null;
+
+    ensureCapacity();
+    state.notes.right.fill(null);
+    state.notes.left.fill(null);
+
+    const BEATS = BARS_PER_VAK * BEATS_PER_BAR; 
+    parsed.vaks.forEach((vak, vi) => {
+      const lineNum = vi + 1;
+      const offset  = vi * BEATS;
+
+      if (vak.section) state.sections[lineNum] = vak.section;
+
+      vak.right.forEach((n, bi) => { state.notes.right[offset + bi] = n; });
+      vak.left .forEach((n, bi) => { state.notes.left [offset + bi] = n; });
+    });
+
+    state.cursorBeat = 0;
+    if (typeof chordTimer !== 'undefined' && chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
+    updateCounts(); updateCursorStatus(); renderNotation();
+
+    const secCount = Object.keys(state.sections).length;
+    const repCount = Object.keys(state.repeats).length;
+    const noteR = state.notes.right.filter(n => n !== null).length;
+    const noteL = state.notes.left .filter(n => n !== null).length;
+
+    return { numVaks, secCount, repCount, noteR, noteL };
+  }
+
+  function buildPreview(parsed) {
+    if (parsed.vaks.length === 0) return '<span style="color:var(--red)">ไม่พบโน้ต</span>';
+
+    const NOTE_CHARS = ['มฺ','ฟฺ','ซฺ','ลฺ','ทฺ','ด','ร','ม','ฟ','ซ','ล','ท','ดํ','รํ','มํ','ฟํ'];
+    const MAX_PREVIEW = 4;
+    let html = '';
+
+    if (parsed.songName) {
+      html += `<div style="color:var(--gold);font-weight:700;margin-bottom:6px;">เพลง ${parsed.songName}</div>`;
+    }
+
+    parsed.vaks.slice(0, MAX_PREVIEW).forEach((vak, vi) => {
+      if (vak.section) {
+        html += `<div style="color:var(--accent);font-size:11px;margin-top:4px;">[${vak.section}]</div>`;
+      }
+      const toStr = arr => arr.map(n => n === null ? '-' : NOTE_CHARS[n]).join(' ');
+      html += `<div style="color:var(--muted);font-size:11px;">วรรค ${vi+1}</div>`;
+      html += `<div style="color:var(--gold)">R: ${toStr(vak.right)}</div>`;
+      html += `<div style="color:var(--accent)">L: ${toStr(vak.left)}</div>`;
+    });
+
+    if (parsed.vaks.length > MAX_PREVIEW) {
+      html += `<div style="color:var(--dim);margin-top:4px;">... และอีก ${parsed.vaks.length - MAX_PREVIEW} วรรค</div>`;
+    }
+    return html;
+  }
+
+  let _parsedData = null;
+
+  function openModal() {
+    _parsedData = null;
+    const overlay  = document.getElementById('importPdfOverlay');
+    const progress = document.getElementById('pdfImportProgress');
+    const preview  = document.getElementById('pdfImportPreview');
+    const errDiv   = document.getElementById('pdfImportError');
+    const confirmBtn = document.getElementById('confirmPdfImportBtn');
+    const input    = document.getElementById('pdfFileInput');
+
+    progress.style.display = 'none';
+    preview.style.display  = 'none';
+    errDiv.style.display   = 'none';
+    confirmBtn.disabled    = true;
+    input.value            = '';
+    overlay.classList.add('show');
+  }
+
+  function closeModal() {
+    document.getElementById('importPdfOverlay').classList.remove('show');
+    _parsedData = null;
+  }
+
+  async function processFile(file) {
+    const progress   = document.getElementById('pdfImportProgress');
+    const progressBar = document.getElementById('pdfProgressBar');
+    const label      = document.getElementById('pdfProgressLabel');
+    const preview    = document.getElementById('pdfImportPreview');
+    const previewContent = document.getElementById('pdfPreviewContent');
+    const errDiv     = document.getElementById('pdfImportError');
+    const confirmBtn = document.getElementById('confirmPdfImportBtn');
+
+    _parsedData = null;
+    confirmBtn.disabled = true;
+    preview.style.display = 'none';
+    errDiv.style.display  = 'none';
+    progress.style.display = 'block';
+    progressBar.style.width = '5%';
+    label.textContent = 'โหลด pdf.js...';
+
+    try {
+      await loadPdfJs();
+      progressBar.style.width = '15%';
+      label.textContent = 'อ่าน PDF...';
+
+      const buf = await file.arrayBuffer();
+      progressBar.style.width = '25%';
+
+      const pages = await extractPdfPages(buf, (cur, total) => {
+        const pct = 25 + Math.round((cur / total) * 55);
+        progressBar.style.width = pct + '%';
+        label.textContent = `อ่านหน้า ${cur}/${total}...`;
+      });
+
+      progressBar.style.width = '85%';
+      label.textContent = 'วิเคราะห์โน้ต...';
+
+      const allLines = pages.flat();
+      const parsed = parseAllLines(allLines);
+      
+      progressBar.style.width = '100%';
+      label.textContent = `พบ ${parsed.vaks.length} วรรค`;
+
+      if (parsed.vaks.length === 0) throw new Error('ไม่พบโน้ตไทยในไฟล์ — PDF อาจเป็นภาพสแกน หรือฟอนต์อาจจะอ่านไม่ได้');
+
+      _parsedData = parsed;
+      previewContent.innerHTML = buildPreview(parsed);
+      preview.style.display = 'block';
+      confirmBtn.disabled = false;
+
+    } catch(err) {
+      progress.style.display = 'none';
+      errDiv.style.display = 'block';
+      errDiv.textContent = '✕ ' + err.message;
+    }
+  }
+
+  function confirmImport() {
+    if (!_parsedData) return;
+    try {
+      const stats = applyParsed(_parsedData);
+      closeModal();
+      showToast(
+        `นำเข้า PDF สำเร็จ · ${stats.numVaks} วรรค · R:${stats.noteR} L:${stats.noteL} notes` +
+        (stats.secCount ? ` · ${stats.secCount} ท่อน` : ''),
+        'success'
+      );
+    } catch(err) {
+      showToast('นำเข้าไม่สำเร็จ: ' + err.message, 'error');
+    }
+  }
+
+  function init() {
+    document.getElementById('importPdfBtn').addEventListener('click', openModal);
+    document.getElementById('cancelPdfImportBtn').addEventListener('click', closeModal);
+    document.getElementById('importPdfOverlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('importPdfOverlay')) closeModal();
+    });
+    document.getElementById('confirmPdfImportBtn').addEventListener('click', confirmImport);
+
+    const dropZone = document.getElementById('pdfDropZone');
+    const fileInput = document.getElementById('pdfFileInput');
+
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = 'var(--purple)';
+      dropZone.style.background  = 'rgba(191,140,255,0.08)';
+    });
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.style.borderColor = '';
+      dropZone.style.background  = '';
+    });
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.borderColor = '';
+      dropZone.style.background  = '';
+      const f = e.dataTransfer.files[0];
+      if (f && f.type === 'application/pdf') processFile(f);
+      else showToast('กรุณาเลือกไฟล์ .PDF', 'error');
+    });
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files[0];
+      if (f) processFile(f);
+    });
+  }
+
+  return { init };
+})();
 
 init();
+PDF_IMPORT.init();
 </script>
 </body>
 </html>
