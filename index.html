@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0e1a">
-<title>ฆ้องวงใหญ่ — Khong Wong Yai (v4.9)</title>
+<title>ฆ้องวงใหญ่-ทำนองหลักเพลงไทย (v4.9)</title>
 
 <!-- ไลบรารีสำหรับสร้าง MP3 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
@@ -41,7 +41,6 @@ button, input, select, .gong, .beat-cell, .toggle {
   touch-action: manipulation;
 }
 
-/* ป้องกัน iOS Auto Zoom ในช่องกรอกข้อความสำหรับมือถือและแท็บเล็ต */
 @media (max-width: 820px) {
   input[type="text"], input[type="number"], select, .tempo-input, .song-input, .sec-input, .repeat-target-input {
     font-size: 16px !important;
@@ -170,9 +169,6 @@ section.panel h3 {
 .stat .value { font-family: "SF Mono", Menlo, monospace; font-size: 15px; color: var(--text); font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
 @media (max-width: 480px) { .stats { gap: 12px; } .stat .value { font-size: 13px; } }
 
-/* Override nowrap for cursor value to allow 2 lines */
-#cursorValue { white-space: normal; }
-
 .gong-stage {
   --gong-size: 40px;
   position: relative; width: 100%; aspect-ratio: 1.5 / 1;
@@ -227,7 +223,6 @@ section.panel h3 {
 .notation { font-family: "SF Mono", Menlo, monospace; min-width: min(600px, 100%); touch-action: pan-x pan-y; }
 .bar-pair { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; transition: all 0.2s; }
 
-/* Styles for highlighted line selection */
 .bar-rows-container.selected-line {
   background: rgba(191,140,255,0.08);
   outline: 2px solid var(--purple);
@@ -257,9 +252,7 @@ section.panel h3 {
 @media (max-width: 400px) {
   .vak-label-col { width: 40px; }
   .vak-label { font-size: 11px; }
-  .hand-label { font-size: 9px !important; }
   .bar-pair { gap: 4px; }
-  .bar-row { gap: 2px !important; }
   .btn-line { font-size: 9px; padding: 3px 0; }
 }
 
@@ -302,9 +295,8 @@ section.panel h3 {
   .hand-label { font-size: 14px; min-height: 28px; }
 }
 .beat-cell.empty { color: var(--dim); }
-.beat-cell.high { color: var(--gold); }
-.beat-cell.low { color: var(--accent); }
-.beat-cell.mid { color: var(--green); }
+/* ตัวโน้ตในตารางทั้งหมดให้เป็นสีเดียวกัน (var(--text)) ตามที่ต้องการ */
+.beat-cell.high, .beat-cell.low, .beat-cell.mid { color: var(--text); }
 
 .nn { position: relative; display: inline-block; padding: 0.2em 0; line-height: 1; }
 .nn-low::after, .nn-high::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; }
@@ -320,7 +312,7 @@ section.panel h3 {
 @keyframes pulse-border { 0% { outline-color: var(--yellow); } 50% { outline-color: transparent; } 100% { outline-color: var(--yellow); } }
 
 .help-text {
-  margin-top: 12px; padding: 10px 14px; background: rgba(91,158,255,0.06);
+  padding: 10px 14px; background: rgba(91,158,255,0.06);
   border: 1px solid rgba(91,158,255,0.25); border-radius: 8px; font-size: 13px; color: var(--muted); line-height: 1.7;
 }
 .help-text strong { color: var(--text); font-weight: 600; }
@@ -410,34 +402,23 @@ section.panel h3 {
 .touch-sel-menu.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, 10px); }
 .touch-sel-menu.menu-below.hidden { transform: translate(-50%, -10px); }
 .tsm-btn {
-  background: transparent; border: none; color: var(--text); padding: 8px 4px;
-  font-size: 11px; font-weight: 500; cursor: pointer; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  background: transparent; border: none; color: var(--text); padding: 10px 4px;
+  font-size: 12px; font-weight: 500; cursor: pointer; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 4px;
   flex: 1 1 24%;
 }
 .tsm-btn:nth-child(4n) { border-right: none; }
 .tsm-btn:nth-child(n+5) { border-bottom: none; }
 .tsm-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.tsm-icon { font-size: 14px; line-height: 1; }
 .tsm-play { color: var(--green); }
 .tsm-del { color: var(--red); }
 
-#multiSelectActionMenu .tsm-btn { flex: 1 1 45%; border-bottom: none; padding: 10px 14px; font-size: 12px; }
+#multiSelectActionMenu .tsm-btn { flex: 1 1 45%; border-bottom: none; padding: 12px 14px; font-size: 13px; }
 #multiSelectActionMenu .tsm-btn:nth-child(1), #multiSelectActionMenu .tsm-btn:nth-child(2) { border-bottom: 1px solid var(--border); }
 #multiSelectActionMenu .tsm-btn:nth-child(even) { border-right: none; }
 
-#lineActionMenu .tsm-btn { flex: 1 1 30%; border-bottom: none; padding: 10px 14px; font-size: 12px; }
+#lineActionMenu .tsm-btn { flex: 1 1 30%; border-bottom: none; padding: 12px 14px; font-size: 13px; }
 #lineActionMenu .tsm-btn:nth-child(3n) { border-right: none; }
-
-.mobile-hand-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.hand-switcher { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
-.hand-btn {
-  padding: 7px 16px; background: var(--panel-2); border: none;
-  color: var(--muted); font-size: 13px; font-weight: 500;
-  font-family: inherit; cursor: pointer; transition: all 0.15s; touch-action: manipulation;
-}
-.hand-btn + .hand-btn { border-left: 1px solid var(--border); }
-.hand-btn.active { background: var(--accent); color: var(--bg); font-weight: 700; }
 
 .playback-bar-wrap { width: 100%; height: 3px; background: var(--panel-3); border-radius: 3px; overflow: hidden; margin-top: 10px; }
 .playback-bar-fill { height: 100%; width: 0%; background: var(--green); border-radius: 3px; transition: width 0.1s linear; }
@@ -511,6 +492,8 @@ section.panel h3 {
 .tk-action.left  { border-color: var(--purple); color: var(--purple); }
 .tk-action.right { border-color: var(--purple); color: var(--purple); }
 .tk-action.enter { border-color: var(--green);  color: var(--green);  }
+.tk-action.undo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
+.tk-action.redo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
 
 .tk-modifier-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 6px; }
 .tk-mod {
@@ -532,7 +515,8 @@ section.panel h3 {
 
 footer { padding: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--muted); }
 
-.save-panel { margin-top: 14px; padding: 14px 16px; background: rgba(63,223,142,0.05); border: 1px solid rgba(63,223,142,0.2); border-radius: 10px; }
+.save-panel { padding: 16px 20px; background: rgba(63,223,142,0.05); border-bottom: 1px solid rgba(63,223,142,0.2); }
+@media (max-width: 600px) { .save-panel { padding: 14px 16px; } }
 .save-panel-title { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .btn.save-now { background: var(--green); border-color: var(--green); color: var(--bg); font-weight: 700; }
 .btn.save-now:hover:not(:disabled) { background: #5af0a8; border-color: #5af0a8; }
@@ -557,14 +541,30 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 </head>
 <body>
 
-<header>
+<main style="padding-top: 0;">
+  <!-- ย้าย สถานะการบันทึกข้อมูล ไว้บนสุด -->
+  <div class="save-panel" style="margin-bottom: 20px;">
+    <div class="save-panel-title">
+      สถานะการบันทึกข้อมูล
+      <span class="autosave-status" id="autosaveStatus">—</span>
+    </div>
+    <div class="save-info-row">
+      <span class="save-badge ls" id="saveBadge">localStorage</span>
+      <span class="save-file-name" id="saveFileName">—</span>
+    </div>
+    <div class="save-actions">
+      <button class="btn save-now" id="saveNowBtn">💾 Save ตอนนี้</button>
+      <button class="btn save-file" id="saveFileBtn" style="display:none">📂 Save ทับไฟล์</button>
+    </div>
+  </div>
+
+<header style="margin-bottom: 20px; border-radius: 12px;">
   <div class="title-row">
-    <h1>ฆ้องวงใหญ่ — Khong Wong Yai</h1>
-    <span class="sub">บันทึก · เล่น · สร้างโน้ตดนตรีไทย · v4.9 (Embed Ready)</span>
+    <h1>ฆ้องวงใหญ่-ทำนองหลักเพลงไทย</h1>
+    <span class="sub">บันทึก เล่นโน้ตดนตรีไทย</span>
   </div>
 </header>
 
-<main>
   <section class="panel">
     <h2>Controls</h2>
     <h3>ควบคุมการเล่นและบันทึก</h3>
@@ -594,19 +594,28 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
           <span class="toggle-track"><span class="toggle-knob"></span></span>
           <span class="toggle-label">Record</span>
         </button>
-        <button class="btn primary" id="playBtn" style="margin-left: auto;" aria-label="เล่นเพลง">▶ Play</button>
-        <button class="btn" id="stopBtn" aria-label="หยุดเล่น">■ Stop</button>
+        <button class="btn primary" id="playBtn" style="margin-left: auto;" aria-label="เล่นเพลง">▶ เล่น</button>
+        <button class="btn" id="stopBtn" aria-label="หยุดเล่น">■ หยุด</button>
         <label class="toggle" style="margin-left: 4px; cursor: pointer;">
           <input type="checkbox" id="autoScrollToggle" checked style="accent-color: var(--accent); margin:0;">
-          <span style="font-size: 11px; color: var(--muted); margin-left: 4px; font-weight: 600;">Auto-Scroll</span>
+          <span style="font-size: 11px; color: var(--muted); margin-left: 4px; font-weight: 600;">เลื่อนอัตโนมัติ</span>
         </label>
         
-        <button class="btn" id="undoBtn" disabled aria-label="ย้อนกลับ" style="margin-left: 4px;">↩ Undo</button>
-        <button class="btn" id="redoBtn" disabled aria-label="ทำซ้ำ">↻ Redo</button>
-        <button class="btn danger" id="clearBtn" aria-label="ล้างโน้ตทั้งหมด">✕ Clear</button>
+        <button class="btn" id="undoBtn" disabled aria-label="ย้อนกลับ" style="margin-left: 4px;">↩ ย้อนกลับ</button>
+        <button class="btn" id="redoBtn" disabled aria-label="ถัดไป">↻ ถัดไป</button>
+        <button class="btn danger" id="clearBtn" aria-label="ล้างทั้งหมด">✕ ล้างทั้งหมด</button>
         
         <div class="dropdown" style="border-left: 1px solid var(--border); padding-left: 10px; margin-left: 2px;">
-          <button class="btn export-btn" id="exportMainBtn">⬇ Export ▾</button>
+          <button class="btn" id="importMainBtn">⬇ นำเข้า ▾</button>
+          <div class="dropdown-menu" id="importMenu">
+            <button class="dropdown-item" id="importJsonBtn">📄 ไฟล์โปรเจกต์ (.JSON)</button>
+            <button class="dropdown-item" id="importTxtBtn">📝 ไฟล์ข้อความ (.TXT)</button>
+            <button class="dropdown-item" id="importPdfBtn">📥 ตารางโน้ตจาก .PDF</button>
+          </div>
+        </div>
+
+        <div class="dropdown">
+          <button class="btn export-btn" id="exportMainBtn">⬆ ส่งออก ▾</button>
           <div class="dropdown-menu" id="exportMenu">
             <button class="dropdown-item" id="exportMenuMp3">🎵 ไฟล์เสียง (.MP3)</button>
             <button class="dropdown-item" id="exportMenuJson">📄 ไฟล์โปรเจกต์ (.JSON)</button>
@@ -614,43 +623,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
             <button class="dropdown-item" id="exportMenuPdf">🖨️ ตารางโน้ต (.PDF)</button>
           </div>
         </div>
-        
-        <button class="btn" id="importBtn" style="margin-left: 4px;">⬆ Import</button>
-        <button class="btn" id="importPdfBtn" style="margin-left: 4px; border-color: var(--purple); color: var(--purple);">📥 PDF</button>
       </div>
     </div>
     
-    <div class="section-spacer"></div>
-    <div class="mobile-hand-row">
-      <span class="control-label">มือที่ใช้บันทึก</span>
-      <div class="hand-switcher" id="handSwitcher">
-        <button class="hand-btn active" data-hand="right" id="handRight" aria-label="สลับไปมือขวา">มือขวา ✦</button>
-        <button class="hand-btn" data-hand="left" id="handLeft" aria-label="สลับไปมือซ้าย">มือซ้าย</button>
-      </div>
-    </div>
     <div class="section-spacer" style="height:10px"></div>
     <div class="stats" id="statsContainer">
-      <div class="stat"><span class="label">Cursor</span><span class="value" id="cursorValue"><span style="font-size: 13px; color: var(--muted);">ไม่ได้เลือกห้อง</span></span></div>
-      <div class="stat"><span class="label">Playback</span><span class="value" id="beatValue">— / —</span></div>
-      <div class="stat"><span class="label">มือขวา</span><span class="value" id="rightCount">0 notes</span></div>
-      <div class="stat"><span class="label">มือซ้าย</span><span class="value" id="leftCount">0 notes</span></div>
+      <div class="stat" style="display:none;"><span class="value" id="cursorValue"></span></div>
+      <div class="stat" style="display:none;"><span class="value" id="beatValue"></span></div>
       <div class="stat"><span class="label">โครงสร้างท่อน</span><span class="value" id="sectionCount">1 ท่อน</span></div>
-    </div>
-
-    <div class="save-panel">
-      <div class="save-panel-title">
-        สถานะการบันทึกข้อมูล
-        <span class="autosave-status" id="autosaveStatus">—</span>
-      </div>
-      <div class="save-info-row">
-        <span class="save-badge ls" id="saveBadge">localStorage</span>
-        <span class="save-file-name" id="saveFileName">—</span>
-      </div>
-      <div class="save-actions">
-        <button class="btn save-now" id="saveNowBtn">💾 Save ตอนนี้</button>
-        <button class="btn save-file" id="saveFileBtn" style="display:none">📂 Save ทับไฟล์</button>
-        <button class="btn" id="exportLocalBtn">⬇ Export JSON</button>
-      </div>
     </div>
   </section>
 
@@ -675,9 +655,8 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
       <div class="notation" id="notation"></div>
     </div>
     <div class="legend">
-      <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>เสียงต่ำ (มฺ - ทฺ)</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>เสียงกลาง (ด - ท)</div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--gold)"></span>เสียงสูง (ดํ - ฟํ)</div>
+      <div class="legend-item">เสียงต่ำ มีจุดด้านล่าง (เช่น มฺ)</div>
+      <div class="legend-item">เสียงสูง มีจุดด้านบน (เช่น ดํ)</div>
       <div class="legend-item"><span class="legend-dot" style="background:var(--dim)"></span>หยุด (rest, −)</div>
     </div>
   </section>
@@ -685,49 +664,54 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   <div class="section-spacer"></div>
   
   <section class="panel">
-    <h2>คู่มือการใช้งาน</h2>
-    <h3>ระบบคีย์บอร์ดแบบขยาย (ใช้งานกับฆ้องวงใหญ่ 16 ลูก)</h3>
-    <div class="help-text">
-      ตรวจสอบให้แน่ใจว่าได้เปิดโหมด <strong>Record</strong> ไว้แล้ว คุณสามารถพิมพ์โน้ตลงไปในช่องตาราง (เคอร์เซอร์สีฟ้า) 
-      โดยใช้แป้นพิมพ์ของคอมพิวเตอร์ หรือแป้นพิมพ์สัมผัสบนมือถือ
-      
-      <div id="imeInfographic" class="ime-infographic"></div>
-      
-      <table class="help-table">
-        <tbody>
-          <tr>
-            <td>iPad / มือถือ (Touch)</td>
-            <td><strong>แตะ 1 ครั้ง</strong> เพื่อเลือกห้องและเปิดเมนู · <strong>แตะ 2 ครั้ง (Double Tap)</strong> เพื่อเข้าโหมดแก้ไขโน้ต</td>
-          </tr>
-          <tr>
-            <td><kbd>Tab</kbd> + ปุ่มโน้ต</td>
-            <td><strong>ระบบคู่ 8</strong> — สร้างคอร์ดคู่ 8 โดยโน้ตต่ำจะลงมือซ้าย และโน้ตสูงจะลงมือขวาอัตโนมัติ</td>
-          </tr>
-          <tr>
-            <td><kbd>Shift</kbd> + ปุ่มโน้ต</td>
-            <td><strong>ระบบคู่ 4</strong> — สร้างคอร์ดคู่ 4 (โน้ตหลักที่กดจะเป็นตัวบน และสร้างตัวล่างที่ห่างลงไป 3 เสียง)</td>
-          </tr>
-          <tr>
-            <td><kbd>↑</kbd> / <kbd>↓</kbd> + ปุ่มโน้ต</td>
-            <td><strong>บังคับมือขวา / มือซ้าย</strong> — กดลูกศรขึ้นหรือลงค้างไว้แล้วกดปุ่มโน้ต</td>
-          </tr>
-          <tr>
-            <td><kbd>Space</kbd></td>
-            <td><strong>โหมดปกติ:</strong> เล่น / หยุดเพลง <br><strong>โหมดแก้ไขโน้ต:</strong> ใส่เครื่องหมาย <strong>(หยุด)</strong> และเลื่อนเคอร์เซอร์</td>
-          </tr>
-        </tbody>
-      </table>
+    <div style="display:flex; justify-content:space-between; align-items:center; cursor:pointer; user-select:none;" id="toggleManualWrap">
+       <h2 style="margin:0;">คู่มือการใช้งาน / ระบบคีย์บอร์ด</h2>
+       <button class="btn" id="toggleManualBtn">📖 คู่มือ ▼</button>
+    </div>
+    
+    <div id="manualContent" style="display:none; margin-top:16px;">
+      <div class="help-text">
+        ตรวจสอบให้แน่ใจว่าได้เปิดโหมด <strong>Record</strong> ไว้แล้ว คุณสามารถพิมพ์โน้ตลงไปในช่องตาราง (เคอร์เซอร์สีฟ้า) 
+        โดยใช้แป้นพิมพ์ของคอมพิวเตอร์ หรือแป้นพิมพ์สัมผัสบนมือถือ
+        
+        <div id="imeInfographic" class="ime-infographic"></div>
+        
+        <table class="help-table">
+          <tbody>
+            <tr>
+              <td>iPad / มือถือ (Touch)</td>
+              <td><strong>แตะ 1 ครั้ง</strong> เพื่อเลือกห้องและเปิดเมนู · <strong>แตะ 2 ครั้ง (Double Tap)</strong> เพื่อเข้าโหมดแก้ไขโน้ต</td>
+            </tr>
+            <tr>
+              <td><kbd>Tab</kbd> + ปุ่มโน้ต</td>
+              <td><strong>ระบบคู่ 8</strong> — สร้างคอร์ดคู่ 8 โดยโน้ตต่ำจะลงมือซ้าย และโน้ตสูงจะลงมือขวาอัตโนมัติ</td>
+            </tr>
+            <tr>
+              <td><kbd>Shift</kbd> + ปุ่มโน้ต</td>
+              <td><strong>ระบบคู่ 4</strong> — สร้างคอร์ดคู่ 4 (โน้ตหลักที่กดจะเป็นตัวบน และสร้างตัวล่างที่ห่างลงไป 3 เสียง)</td>
+            </tr>
+            <tr>
+              <td><kbd>↑</kbd> / <kbd>↓</kbd> + ปุ่มโน้ต</td>
+              <td><strong>บังคับมือขวา / มือซ้าย</strong> — กดลูกศรขึ้นหรือลงค้างไว้แล้วกดปุ่มโน้ต</td>
+            </tr>
+            <tr>
+              <td><kbd>Space</kbd></td>
+              <td><strong>โหมดปกติ:</strong> เล่น / หยุดเพลง <br><strong>โหมดแก้ไขโน้ต:</strong> ใส่เครื่องหมาย <strong>(หยุด)</strong> และเลื่อนเคอร์เซอร์</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </section>
 </main>
 
 <div class="touch-sel-menu hidden" id="cellActionMenu">
-  <button class="tsm-btn" id="camPlay"><span class="tsm-icon">▶</span>เล่นห้อง</button>
-  <button class="tsm-btn" id="camEdit"><span class="tsm-icon">✏️</span>แก้โน้ต</button>
+  <button class="tsm-btn tsm-play" id="camPlay"><span class="tsm-icon">▶</span>เล่น</button>
+  <button class="tsm-btn" id="camEdit"><span class="tsm-icon">✎</span>แก้ไข</button>
   <button class="tsm-btn" id="camCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
-  <button class="tsm-btn" id="camPaste" disabled><span class="tsm-icon">⎙</span>วาง</button>
-  <button class="tsm-btn" id="camMulti"><span class="tsm-icon">☑️</span>เลือกหลาย</button>
-  <button class="tsm-btn" id="camDecBar"><span class="tsm-icon">-</span>ลดห้อง</button>
+  <button class="tsm-btn" id="camPaste" disabled><span class="tsm-icon">📋</span>วาง</button>
+  <button class="tsm-btn" id="camMulti"><span class="tsm-icon">☑</span>เลือกหลายรายการ</button>
+  <button class="tsm-btn" id="camDecBar"><span class="tsm-icon">−</span>ลดห้อง</button>
   <button class="tsm-btn" id="camIncBar"><span class="tsm-icon">+</span>เพิ่มห้อง</button>
   <button class="tsm-btn tsm-del" id="camDel"><span class="tsm-icon">⌫</span>ลบ</button>
 </div>
@@ -735,15 +719,15 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   <button class="tsm-btn tsm-play" id="cemOk" style="flex: 1 1 100%; border-right: none;"><span class="tsm-icon">✓</span>ตกลง (ปิดโหมดพิมพ์)</button>
 </div>
 <div class="touch-sel-menu hidden" id="lineActionMenu">
-  <button class="tsm-btn" id="lamCopy"><span class="tsm-icon">⎘</span>คัดลอกบรรทัด</button>
-  <button class="tsm-btn" id="lamPaste" disabled><span class="tsm-icon">⎙</span>วางบรรทัด</button>
+  <button class="tsm-btn" id="lamCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
+  <button class="tsm-btn" id="lamPaste" disabled><span class="tsm-icon">📋</span>วาง</button>
   <button class="tsm-btn" id="lamCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
 </div>
 <div class="touch-sel-menu hidden" id="multiSelectActionMenu" style="top: auto; bottom: 80px; left: 50%; transform: translateX(-50%); box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
-  <button class="tsm-btn" id="msmCopy" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">⎘</span>คัดลอก</button>
-  <button class="tsm-btn" id="msmPaste" disabled style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">⎙</span>วาง</button>
-  <button class="tsm-btn tsm-play" id="msmPlay" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">▶</span>เล่นซ้ำ</button>
-  <button class="tsm-btn" id="msmCancel" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">✕</span>ยกเลิก</button>
+  <button class="tsm-btn" id="msmCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
+  <button class="tsm-btn" id="msmPaste" disabled><span class="tsm-icon">📋</span>วาง</button>
+  <button class="tsm-btn tsm-play" id="msmPlay"><span class="tsm-icon">▶</span>เล่นซ้ำ</button>
+  <button class="tsm-btn" id="msmCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
 </div>
 
 <div class="touch-keyboard" id="touchKeyboard">
@@ -753,8 +737,10 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   </div>
   
   <div class="tk-playback-row">
-    <div class="tk-action play" id="tkPlayMain">▶ เล่นเพลง</div>
-    <div class="tk-action stop" id="tkStopMain">■ หยุด</div>
+    <div class="tk-action play" id="tkPlayMain" style="flex:3;">▶ เล่นเพลง</div>
+    <div class="tk-action stop" id="tkStopMain" style="flex:2;">■ หยุด</div>
+    <div class="tk-action undo" id="tkUndoBtn" style="flex:1;">↩</div>
+    <div class="tk-action redo" id="tkRedoBtn" style="flex:1;">↻</div>
   </div>
 
   <div class="tk-modifier-row">
@@ -801,8 +787,8 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <!-- Modal สำหรับ ยืนยันการลบ -->
 <div class="modal-overlay" id="clearConfirmModal">
   <div class="modal-content">
-    <h3 class="modal-title">ยืนยันการล้างตาราง</h3>
-    <p class="modal-body">คุณต้องการลบโน้ตทั้งหมดที่อยู่ในตารางใช่หรือไม่? <br><em>(การกระทำนี้สามารถกู้คืนได้ด้วยปุ่ม Undo)</em></p>
+    <h3 class="modal-title">ยืนยันการล้างตารางทั้งหมด</h3>
+    <p class="modal-body">คุณต้องการลบโน้ตทั้งหมดและรีเซ็ตโครงสร้างตารางกลับไปเริ่มต้นใหม่หรือไม่? <br><em>(การกระทำนี้สามารถกู้คืนได้ด้วยปุ่ม ย้อนกลับ)</em></p>
     <div class="modal-actions">
       <button class="btn" id="cancelClearBtn">ยกเลิก</button>
       <button class="btn danger" id="confirmClearBtn">ลบทันที</button>
@@ -812,22 +798,16 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 
 <!-- Modal สำหรับ เลือกเล่นเป็นช่วง -->
 <div class="modal-overlay" id="playRangeModal">
-  <div class="modal-content">
+  <div class="modal-content" style="max-width: 450px;">
     <h3 class="modal-title">▶ เลือกช่วงที่ต้องการเล่น</h3>
     <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
-       <div>
-         <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มเล่นจาก (ลำดับท่อน):</label>
-         <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
-             <input type="number" id="prStart" class="tempo-input" style="width:80px;" min="1" value="1" inputmode="numeric">
-             <span style="font-size:12px; color:var(--dim);" id="prStartHint"></span>
-         </div>
+       <div style="display:flex; flex-direction:column; gap:6px;">
+         <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มตั้งแต่ท่อน:</label>
+         <select id="prStartSel" class="mp3-select"></select>
        </div>
-       <div>
-         <label style="font-size:12px; font-weight:600; color:var(--muted);">สิ้นสุดที่ (ลำดับท่อน):</label>
-         <div style="display:flex; gap:10px; align-items:center; margin-top:6px;">
-             <input type="number" id="prEnd" class="tempo-input" style="width:80px;" min="1" value="1" inputmode="numeric">
-             <span style="font-size:12px; color:var(--dim);" id="prEndHint"></span>
-         </div>
+       <div style="display:flex; flex-direction:column; gap:6px;">
+         <label style="font-size:12px; font-weight:600; color:var(--muted);">จนถึงสิ้นสุดท่อนที่:</label>
+         <select id="prEndSel" class="mp3-select"></select>
        </div>
     </div>
     <div class="modal-actions">
@@ -840,7 +820,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <!-- Modal สำหรับ เลือกช่วงท่อน Export MP3 -->
 <div class="modal-overlay" id="exportMp3Modal">
   <div class="modal-content" style="max-width: 450px;">
-    <h3 class="modal-title">🎵 Export MP3 (เลือกท่อน)</h3>
+    <h3 class="modal-title">🎵 ส่งออก MP3 (เลือกท่อน)</h3>
     <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
        <div style="display:flex; flex-direction:column; gap:6px;">
          <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มตั้งแต่ท่อน:</label>
@@ -864,10 +844,10 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <!-- ===== Modal: Import PDF ===== -->
 <div class="modal-overlay" id="importPdfOverlay">
   <div class="modal-content" style="max-width:520px; width:92%;">
-    <h3 class="modal-title">📥 Import ตารางโน้ตจาก PDF</h3>
+    <h3 class="modal-title">📥 นำเข้าตารางโน้ตจาก PDF</h3>
     <p class="modal-body" style="margin-bottom:16px; line-height:1.7;">
       ระบบจะอ่านโน้ตไทย (<span style="color:var(--accent);font-family:monospace">มฺ ฟฺ ซฺ ลฺ ทฺ ด ร ม ฟ ซ ล ท ดํ รํ มํ ฟํ</span>) จาก PDF แล้วใส่ลงตารางโดยอัตโนมัติ<br>
-      <span style="font-size:12px;color:var(--dim);">รองรับ PDF ที่มี text layer (พิมพ์ได้/copy ได้) เช่น PDF ที่ Export จากโปรแกรมโน้ต, Word, หรือระบบนี้</span>
+      <span style="font-size:12px;color:var(--dim);">รองรับ PDF ที่มี text layer (พิมพ์ได้/copy ได้) เช่น PDF ที่ส่งออกจากโปรแกรมโน้ต, Word, หรือระบบนี้</span>
     </p>
 
     <div id="pdfDropZone" style="
@@ -909,14 +889,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 </div>
 
 <footer>
-  © 2026 · ฆ้องวงใหญ่ (Khong Wong Yai) Notation System · v4.9 · Embed Ready
+  © 2026 · ฆ้องวงใหญ่ (Khong Wong Yai) Notation System · v4.9
 </footer>
 
 <script>
 function updatePageTitle() {
   document.title = state.songName && state.songName.trim() !== '' 
     ? `${state.songName} — Khong Wong Yai` 
-    : 'ฆ้องวงใหญ่ — Khong Wong Yai (v4.9)';
+    : 'ฆ้องวงใหญ่-ทำนองหลักเพลงไทย';
 }
 
 function showToast(message, type = 'success') {
@@ -1065,7 +1045,7 @@ function performUndo() {
   const snap = undoStack.pop();
   restoreSnapshot(snap);
   updateUndoUI();
-  showToast('Undo สำเร็จ');
+  showToast('ย้อนกลับ สำเร็จ');
 }
 
 function performRedo() {
@@ -1079,7 +1059,7 @@ function performRedo() {
   const snap = redoStack.pop();
   restoreSnapshot(snap);
   updateUndoUI();
-  showToast('Redo สำเร็จ');
+  showToast('ถัดไป สำเร็จ');
 }
 
 function restoreSnapshot(snap) {
@@ -1096,8 +1076,7 @@ function restoreSnapshot(snap) {
   document.getElementById('multiSelectActionMenu')?.classList.add('hidden');
   hideCellMenus();
   
-  ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
-  if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
+  ensureCapacity(); updateSectionStats(); renderNotation();
 }
 
 function updateUndoUI() {
@@ -1105,17 +1084,6 @@ function updateUndoUI() {
   const redoBtn = document.getElementById('redoBtn');
   if (undoBtn) undoBtn.disabled = undoStack.length === 0;
   if (redoBtn) redoBtn.disabled = redoStack.length === 0;
-}
-
-function updateHandSwitcher() {
-  const btnRight = document.getElementById('handRight');
-  const btnLeft = document.getElementById('handLeft');
-  if (btnRight && btnLeft) {
-    btnRight.classList.toggle('active', state.hand === 'right');
-    btnLeft.classList.toggle('active', state.hand === 'left');
-    btnRight.textContent = state.hand === 'right' ? 'มือขวา ✦' : 'มือขวา';
-    btnLeft.textContent = state.hand === 'left' ? 'มือซ้าย ✦' : 'มือซ้าย';
-  }
 }
 
 let audioCtx = null; let audioUnlocked = false; let iosWarned = false;
@@ -1334,7 +1302,7 @@ function commitChord() {
   if (left !== null) state.notes.left[state.cursorBeat] = left;
   if (right !== null) state.notes.right[state.cursorBeat] = right;
   
-  advanceCursor(); updateCounts(); updateCursorStatus(); renderNotation();
+  advanceCursor(); updateSectionStats(); renderNotation();
 }
 
 function insertRest() {
@@ -1342,7 +1310,7 @@ function insertRest() {
   if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
   pushUndo();
   state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
-  advanceCursor(); updateCounts(); updateCursorStatus(); renderNotation();
+  advanceCursor(); updateSectionStats(); renderNotation();
 }
 
 function deleteAtCursor() {
@@ -1357,7 +1325,7 @@ function deleteAtCursor() {
     state.cursorBeat = beat - 1;
     state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
   }
-  updateCounts(); updateCursorStatus(); renderNotation();
+  updateSectionStats(); renderNotation();
 }
 
 function moveCursorBy(delta) {
@@ -1368,7 +1336,7 @@ function moveCursorBy(delta) {
       if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     });
   }
-  updateCursorStatus(); renderNotation();
+  renderNotation();
 }
 
 function getSafeFilename(name) {
@@ -1405,7 +1373,7 @@ function pasteRoom() {
         state.notes.right[startB + i] = customClipboard.data.right != null ? customClipboard.data.right[i] : null;
         state.notes.left[startB + i]  = customClipboard.data.left  != null ? customClipboard.data.left[i]  : null;
     }
-    updateCounts(); renderNotation(); hideCellMenus();
+    renderNotation(); hideCellMenus();
     showToast('วางโน้ต (ทั้ง 2 มือ) เรียบร้อย', 'success');
 }
 
@@ -1463,7 +1431,6 @@ function pasteMultiRooms() {
         }
     });
     
-    updateCounts(); 
     state.isMultiSelectMode = false;
     state.selectedRooms.clear();
     document.getElementById('multiSelectActionMenu').classList.add('hidden');
@@ -1576,12 +1543,6 @@ function moveLineDown(lineIndex) {
     moveLineUp(lineIndex + 1);
 }
 
-function countNotes(hand) { return state.notes[hand].filter(n => n !== null).length; }
-function updateCounts() { 
-  document.getElementById('rightCount').textContent = `${countNotes('right')} notes`; 
-  document.getElementById('leftCount').textContent = `${countNotes('left')} notes`; 
-}
-
 function updateSectionStats() {
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
   const sectionKeys = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
@@ -1612,48 +1573,6 @@ function updateSectionStats() {
       statDiv.innerHTML = `<span class="label" title="${secName}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${secName}</span><span class="value">${numLines} บรรทัด</span>`;
       statsContainer.appendChild(statDiv);
   }
-}
-
-function updateCursorStatus() {
-  if (state.cursorBeat === -1) {
-      document.getElementById('cursorValue').innerHTML = '<span style="font-size: 13px; color: var(--muted);">ไม่ได้เลือกห้อง</span>';
-      if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
-      return;
-  }
-  
-  const beat = state.cursorBeat;
-  const globalBar = Math.floor(beat / 4);
-  const lineNum = Math.floor(globalBar / 8) + 1;
-  const barInVak = Math.floor((beat % 32) / BEATS_PER_BAR) + 1; 
-  const within = (beat % BEATS_PER_BAR) + 1;
-  const handTh = state.hand === 'right' ? 'มือขวา' : 'มือซ้าย';
-  
-  const sectionKeys = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
-  if (!sectionKeys.includes(1)) sectionKeys.unshift(1);
-  
-  let currentSecStart = 1;
-  let currentSecName = 'ท่อนที่ 1';
-  
-  for (let i = 0; i < sectionKeys.length; i++) {
-      if (lineNum >= sectionKeys[i]) {
-          currentSecStart = sectionKeys[i];
-          currentSecName = (state.sections && state.sections[sectionKeys[i]]) ? state.sections[sectionKeys[i]] : `ท่อนที่ ${i + 1}`;
-      } else {
-          break;
-      }
-  }
-  
-  const relativeLine = lineNum - currentSecStart + 1;
-  
-  if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
-  
-  // ให้ Cursor แสดงผลเป็น 2 บรรทัด (ชื่อท่อนอยู่บน, ลำดับบรรทัดและข้อมูลจังหวะอยู่ล่าง)
-  document.getElementById('cursorValue').innerHTML = `
-    <span style="display: flex; flex-direction: column; line-height: 1.4; padding-top: 2px;">
-      <span style="font-size: 14px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;" title="${currentSecName}">${currentSecName}</span>
-      <span style="font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">บรรทัดที่ ${relativeLine} <span style="font-size: 10px; color: var(--muted);">(${handTh} · ห้อง ${barInVak} · จังหวะ ${within})</span></span>
-    </span>
-  `;
 }
 
 function renderNotation() {
@@ -1692,15 +1611,15 @@ function renderNotation() {
            setTimeout(() => { const inp = document.getElementById(`secInp-${lineNum}`); if (inp) { inp.focus(); inp.select(); } }, 10);
        } else {
            secHeader.innerHTML = `
-              <div class="sec-title">🔖 ${secName}</div>
-              <button class="btn-sec edit-sec">✏️ แก้ไขชื่อ</button>
-              <button class="btn-sec del-sec">🗑️ ลบ</button>
-              <button class="btn-sec play-sec">▶ เล่นท่อนนี้</button>
-              <button class="btn-sec play-range-sec">▶ เล่นเป็นช่วง</button>
+              <div class="sec-title">${secName}</div>
+              <button class="btn-sec edit-sec">แก้ไขชื่อ</button>
+              <button class="btn-sec del-sec">ลบ</button>
+              <button class="btn-sec play-sec">เล่นท่อนนี้</button>
+              <button class="btn-sec play-range-sec">เล่นเป็นช่วง</button>
            `;
        }
     } else {
-       secHeader.innerHTML = `<button class="btn-sec add-sec">+ แทรกคั่นท่อน</button>`;
+       secHeader.innerHTML = `<button class="btn-sec add-sec">+ แทรกท่อน</button>`;
     }
 
     secHeader.addEventListener('click', (e) => {
@@ -1769,7 +1688,6 @@ function renderNotation() {
     const rowsContainer = document.createElement('div'); 
     rowsContainer.className = 'bar-rows-container';
     
-    // ไฮไลท์แค่บริเวณตารางโน้ต
     if (state.selectedLine === lineNum) {
         rowsContainer.classList.add('selected-line');
     }
@@ -1777,14 +1695,13 @@ function renderNotation() {
     ['right', 'left'].forEach(hand => {
       const row = document.createElement('div'); row.className = 'bar-row ' + hand;
       const labelWidth = window.innerWidth <= 400 ? '24px' : '72px';
-      // บังคับให้โครงสร้าง grid เป็น 8 ช่องเสมอ ไม่ว่าจะตั้ง length ไว้เท่าไหร่ เพื่อไม่ให้ตารางขยับ
+      // บังคับให้โครงสร้าง grid เป็น 8 ช่องเสมอ 
       row.style.gridTemplateColumns = `${labelWidth} repeat(8, 1fr)`;
       
       const label = document.createElement('div'); 
       label.className = 'hand-label' + (hand === 'right' ? ' clickable' : '');
       label.textContent = hand === 'right' ? 'มือขวา' : 'มือซ้าย';
       
-      // การกดคัดลอกบรรทัดมาที่ป้าย "มือขวา"
       if (hand === 'right') {
           label.title = 'แตะที่นี่เพื่อคัดลอก/วางบรรทัด';
           label.addEventListener('click', (e) => {
@@ -1797,7 +1714,6 @@ function renderNotation() {
       
       row.appendChild(label);
 
-      // วนลูปเฉพาะจำนวนห้องที่มีจริงๆ (ที่เหลือขวาจะว่างตาม CSS Grid)
       for (let b = startBar; b < startBar + barsInThisLine; b++) {
         const barInLine = b - startBar + 1; 
         const barCell = document.createElement('div'); barCell.className = 'bar-cell'; barCell.title = `ห้อง ${barInLine}`;
@@ -1822,7 +1738,6 @@ function renderNotation() {
           if (hand === state.hand && globalBeat === state.cursorBeat && state.isEditMode) {
             cell.classList.add('edit-box');
           }
-          if (state.isPlaying && globalBeat === state.currentBeat) cell.classList.add('current-beat');
           
           cell.dataset.beat = globalBeat; cell.dataset.hand = hand;
           barCell.appendChild(cell);
@@ -2006,7 +1921,7 @@ function openPlayRangeModal(startLineNum) {
     if (!sectionLineMap.includes(1)) sectionLineMap.unshift(1); 
     
     if (sectionLineMap.length === 0) {
-        showToast('คุณยังไม่ได้สร้าง "ท่อน" ใดๆ โปรดแทรกท่อนคั่นก่อน', 'error');
+        showToast('คุณยังไม่ได้สร้าง "ท่อน" ใดๆ โปรดแทรกท่อนก่อน', 'error');
         return;
     }
 
@@ -2139,7 +2054,6 @@ function scheduleBeat(step, time) {
   const msUi = Math.max(0, (time - ctx.currentTime) * 1000);
   playbackVisualTimers.push(setTimeout(() => {
       if (!state.isPlaying) return; state.currentBeat = beat;
-      const bVal = document.getElementById('beatValue'); if(bVal) bVal.textContent = `Step ${step + 1} / ${playbackSeq.length}`;
       const pct = Math.round((step / Math.max(1, playbackSeq.length - 1)) * 100);
       const bar = document.getElementById('playbackBar'); if (bar) bar.style.width = pct + '%';
       
@@ -2176,7 +2090,7 @@ function stopPlayback(cutAudio = false) {
       try { master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value || 0, now); master.gain.linearRampToValueAtTime(0, now + 0.05); } catch (_) {}
     }
   }
-  playbackActiveMasters = []; document.getElementById('beatValue').textContent = '— / —'; 
+  playbackActiveMasters = [];
 }
 
 let isExporting = false;
@@ -2187,7 +2101,7 @@ async function exportMP3(customSeq = null, suffix = '') {
 
   isExporting = true; const btn = document.getElementById('exportMainBtn');
   const originalText = btn.textContent;
-  btn.textContent = 'กำลังแปลง...'; btn.disabled = true;
+  btn.textContent = 'เตรียมข้อมูล...'; btn.disabled = true;
 
   try {
     const beatDur = 60 / state.bpm; const seq = customSeq || getPlaybackSequence(); 
@@ -2195,6 +2109,9 @@ async function exportMP3(customSeq = null, suffix = '') {
     const duration = seq.length * beatDur + 2.0; const sampleRate = 44100;
     const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     if (!OfflineCtx) throw new Error("ไม่รองรับ OfflineAudioContext");
+    
+    btn.textContent = 'ประมวลผลเสียง...';
+    await new Promise(r => setTimeout(r, 50)); 
     
     const renderLength = Math.ceil(sampleRate * duration);
     const offlineCtx = new OfflineCtx(2, renderLength, sampleRate);
@@ -2208,6 +2125,9 @@ async function exportMP3(customSeq = null, suffix = '') {
     }
 
     const renderedBuffer = await offlineCtx.startRendering();
+    btn.textContent = 'แปลงไฟล์ (0%)...';
+    await new Promise(r => setTimeout(r, 50)); 
+
     const mp3encoder = new window.lamejs.Mp3Encoder(2, renderedBuffer.sampleRate, 128);
     const mp3Data = []; const left = renderedBuffer.getChannelData(0); const right = renderedBuffer.getChannelData(1);
     const sampleBlockSize = 1152; const leftInt16 = new Int16Array(left.length); const rightInt16 = new Int16Array(right.length);
@@ -2217,10 +2137,21 @@ async function exportMP3(customSeq = null, suffix = '') {
       rightInt16[i] = right[i] < 0 ? right[i] * 32768 : right[i] * 32767;
     }
 
-    for (let i = 0; i < left.length; i += sampleBlockSize) {
-      const mp3buf = mp3encoder.encodeBuffer(leftInt16.subarray(i, i + sampleBlockSize), rightInt16.subarray(i, i + sampleBlockSize));
-      if (mp3buf.length > 0) mp3Data.push(mp3buf);
+    const CHUNK_SIZE = sampleBlockSize * 100;
+    for (let i = 0; i < left.length; i += CHUNK_SIZE) {
+      const end = Math.min(i + CHUNK_SIZE, left.length);
+      for (let j = i; j < end; j += sampleBlockSize) {
+          const mp3buf = mp3encoder.encodeBuffer(
+              leftInt16.subarray(j, j + sampleBlockSize), 
+              rightInt16.subarray(j, j + sampleBlockSize)
+          );
+          if (mp3buf.length > 0) mp3Data.push(mp3buf);
+      }
+      const progress = Math.round((end / left.length) * 100);
+      btn.textContent = `แปลงไฟล์ (${progress}%)...`;
+      await new Promise(r => setTimeout(r, 10)); // Yield to main thread
     }
+    
     const finalBuf = mp3encoder.flush(); if (finalBuf.length > 0) mp3Data.push(finalBuf);
 
     const safeName = getSafeFilename(state.songName); const blob = new Blob(mp3Data, { type: 'audio/mp3' }); const url = URL.createObjectURL(blob);
@@ -2298,17 +2229,18 @@ function exportText() {
 const isIframe = window !== window.parent;
 const hasFSAPI = !isIframe && ('showSaveFilePicker' in window) && ('showOpenFilePicker' in window);
 
-async function executeImport() {
+async function executeImport(fileType) {
   if (hasFSAPI) {
     try {
-      const [handle] = await window.showOpenFilePicker({
-        types: [{ description: 'Supported Files (JSON, TXT)', accept: { 'application/json': ['.json'], 'text/plain': ['.txt'] } }],
-        multiple: false
-      });
+      const opts = fileType === 'json' 
+        ? [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }]
+        : [{ description: 'Text Files', accept: { 'text/plain': ['.txt'] } }];
+      const [handle] = await window.showOpenFilePicker({ types: opts, multiple: false });
       const file = await handle.getFile(); await processImportFile(file, handle);
     } catch(e) { if (e.name !== 'AbortError') showToast('เปิดไฟล์ไม่สำเร็จ: ' + e.message, 'error'); }
   } else {
-    const picker = document.createElement('input'); picker.type = 'file'; picker.accept = '.json,.txt,application/json,text/plain';
+    const picker = document.createElement('input'); picker.type = 'file'; 
+    picker.accept = fileType === 'json' ? '.json,application/json' : '.txt,text/plain';
     picker.addEventListener('change', async () => {
       const file = picker.files[0]; if (!file) return; await processImportFile(file, null); picker.value = '';
     });
@@ -2317,7 +2249,7 @@ async function executeImport() {
 }
 
 async function processImportFile(file, handle) {
-  const btn = document.getElementById('importBtn'); const name = file.name.toLowerCase(); const mime = (file.type || '').toLowerCase();
+  const btn = document.getElementById('importMainBtn'); const name = file.name.toLowerCase(); const mime = (file.type || '').toLowerCase();
   const isJson  = name.endsWith('.json') || mime === 'application/json';
   const isTxt   = name.endsWith('.txt')  || mime === 'text/plain'; 
 
@@ -2335,7 +2267,7 @@ async function processImportFile(file, handle) {
 
     applyTextImport(text); currentFileHandle = null; updateSaveUI();
   } catch (err) { showToast('นำเข้าไม่สำเร็จ: ' + err.message, 'error'); } 
-  finally { btn.textContent = '⬆ Import'; btn.disabled = false; }
+  finally { btn.textContent = '⬇ นำเข้า ▾'; btn.disabled = false; }
 }
 
 function parseNotesFromText(text) {
@@ -2430,7 +2362,7 @@ function applyTextImport(text) {
 
   state.cursorBeat = 0;
   if (chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-  updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
+  updateSectionStats(); renderNotation();
 
   const modeLabel = (allGroupsHaveTwoLines || (isSingleGroup && singleGroupEven && !allGroupsHaveOneLine))
     ? `แบ่งมือ ${groups.length || Math.ceil(groups[0].length/2)} วรรค`
@@ -2460,7 +2392,7 @@ function applyImport(data, silent = false) {
     state.notes.left = Array.isArray(data.notes.left) ? data.notes.left.slice() : [];
   }
   
-  state.cursorBeat = 0; ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
+  state.cursorBeat = 0; ensureCapacity(); updateSectionStats(); renderNotation();
 }
 
 function appendNewVak() {
@@ -2469,7 +2401,7 @@ function appendNewVak() {
   const currentVak = state.numBars / BARS_PER_VAK;
   state.numBars += BARS_PER_VAK; document.getElementById('numVak').value = currentVak + 1;
   ensureCapacity(); state.cursorBeat = currentVak * BARS_PER_VAK * BEATS_PER_BAR;
-  updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
+  updateSectionStats(); renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
   requestAnimationFrame(() => {
     const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
     if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
@@ -2537,11 +2469,11 @@ function updateSaveUI() {
   if (hasFSAPI) {
     if (saveFileBtn) saveFileBtn.style.display = '';
     if (badge) { badge.textContent = currentFileHandle ? 'File System API' : 'localStorage + File'; badge.className = 'save-badge fs'; }
-    if (fname) fname.textContent = currentFileHandle ? (currentFileHandle.name || '—') : 'ยังไม่ได้เลือกไฟล์ · กด ⬆ Import เพื่อเปิดไฟล์ที่มีอยู่';
+    if (fname) fname.textContent = currentFileHandle ? (currentFileHandle.name || '—') : 'ยังไม่ได้เลือกไฟล์ · กด ⬇ นำเข้า เพื่อเปิดไฟล์ที่มีอยู่';
   } else {
     if (saveFileBtn) saveFileBtn.style.display = 'none';
     if (badge) { badge.textContent = 'localStorage'; badge.className = 'save-badge ls'; }
-    if (fname) fname.textContent = 'บันทึกด้วยตนเองใน browser · กด Export JSON เพื่อดาวน์โหลด';
+    if (fname) fname.textContent = 'บันทึกด้วยตนเองใน browser · กดส่งออก JSON เพื่อดาวน์โหลด';
   }
 }
 
@@ -2549,7 +2481,6 @@ function initSaveSystem() {
   updateSaveUI(); loadFromLocalStorage();
   document.getElementById('saveNowBtn').addEventListener('click', () => { saveToLocalStorage(); showToast('บันทึกใน browser แล้ว', 'success'); });
   const saveFileBtn = document.getElementById('saveFileBtn'); if (saveFileBtn) saveFileBtn.addEventListener('click', saveToCurrentFile);
-  document.getElementById('exportLocalBtn').addEventListener('click', exportNotation);
 }
 
 function initTouchKeyboard() {
@@ -2590,6 +2521,8 @@ function initTouchKeyboard() {
 
   document.getElementById('tkPlayMain')?.addEventListener('pointerdown', (e) => { e.preventDefault(); startPlayback(); });
   document.getElementById('tkStopMain')?.addEventListener('pointerdown', (e) => { e.preventDefault(); stopPlayback(true); });
+  document.getElementById('tkUndoBtn')?.addEventListener('pointerdown', (e) => { e.preventDefault(); performUndo(); });
+  document.getElementById('tkRedoBtn')?.addEventListener('pointerdown', (e) => { e.preventDefault(); performRedo(); });
 
   function getActiveModKey() { if (modState.tab) return 'tab'; if (modState.shift) return 'shift'; if (modState.up) return 'up'; if (modState.down) return 'down'; return 'none'; }
   function updateModUI() {
@@ -2614,7 +2547,7 @@ function initTouchKeyboard() {
 }
 
 function init() {
-  ensureCapacity(); renderGongs(); renderNotation(); updateCounts(); updateSectionStats(); updateCursorStatus(); updateHandSwitcher(); initTouchKeyboard(); initSaveSystem();
+  ensureCapacity(); renderGongs(); renderNotation(); updateSectionStats(); initTouchKeyboard(); initSaveSystem();
   updatePageTitle(); 
   updateUndoUI(); 
 
@@ -2627,7 +2560,7 @@ function init() {
     state.bpm = Math.max(30, Math.min(300, +e.target.value || 200)); 
   });
   
-  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); });
+  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); updateSectionStats(); renderNotation(); });
 
   const recTog = document.getElementById('recordToggle');
   recTog.addEventListener('click', () => { state.isRecording = !state.isRecording; recTog.classList.toggle('on', state.isRecording); renderNotation(); });
@@ -2638,9 +2571,6 @@ function init() {
   document.getElementById('undoBtn').addEventListener('click', performUndo);
   document.getElementById('redoBtn').addEventListener('click', performRedo);
   
-  document.getElementById('handRight').addEventListener('click', () => { state.hand = 'right'; updateHandSwitcher(); updateCursorStatus(); renderNotation(); });
-  document.getElementById('handLeft').addEventListener('click', () => { state.hand = 'left'; updateHandSwitcher(); updateCursorStatus(); renderNotation(); });
-  
   document.getElementById('clearBtn').addEventListener('click', () => {
     document.getElementById('clearConfirmModal').classList.add('show');
   });
@@ -2649,12 +2579,20 @@ function init() {
   });
   document.getElementById('confirmClearBtn').addEventListener('click', () => {
     document.getElementById('clearConfirmModal').classList.remove('show');
-    pushUndo(); 
-    state.notes.right.fill(null); state.notes.left.fill(null); 
+    pushUndo();
+    state.numBars = BARS_PER_VAK;
+    document.getElementById('numVak').value = 1;
+    state.notes.right = new Array(32).fill(null);
+    state.notes.left = new Array(32).fill(null);
     state.lineLengths = {};
-    state.cursorBeat = 0; state.currentBeat = -1; 
+    state.sections = {};
+    state.repeats = {};
+    state.cursorBeat = 0;
+    state.currentBeat = -1;
     state.selectedLine = null;
-    updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); 
+    ensureCapacity();
+    updateSectionStats();
+    renderNotation();
     showToast('ล้างตารางเรียบร้อย');
   });
 
@@ -2685,9 +2623,22 @@ function init() {
     exportMenu.classList.toggle('show');
   });
 
+  const importMainBtn = document.getElementById('importMainBtn');
+  const importMenu = document.getElementById('importMenu');
+
+  if(importMainBtn) {
+    importMainBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      importMenu.classList.toggle('show');
+    });
+  }
+
   document.addEventListener('click', (e) => {
-    if (!exportMenu.contains(e.target) && e.target !== exportMainBtn) {
+    if (exportMenu && !exportMenu.contains(e.target) && e.target !== exportMainBtn) {
       exportMenu.classList.remove('show');
+    }
+    if (importMenu && !importMenu.contains(e.target) && e.target !== importMainBtn) {
+      importMenu.classList.remove('show');
     }
   });
 
@@ -2756,7 +2707,30 @@ function init() {
   document.getElementById('exportMenuTxt').addEventListener('click', () => { exportMenu.classList.remove('show'); exportText(); });
   document.getElementById('exportMenuPdf').addEventListener('click', () => { exportMenu.classList.remove('show'); exportPDF(); });
 
-  document.getElementById('importBtn').addEventListener('click', executeImport);
+  document.getElementById('importJsonBtn').addEventListener('click', () => {
+     if(importMenu) importMenu.classList.remove('show');
+     executeImport('json');
+  });
+  document.getElementById('importTxtBtn').addEventListener('click', () => {
+     if(importMenu) importMenu.classList.remove('show');
+     executeImport('txt');
+  });
+  
+  // User Manual Toggle
+  const toggleWrap = document.getElementById('toggleManualWrap');
+  if(toggleWrap) {
+      toggleWrap.addEventListener('click', () => {
+          const content = document.getElementById('manualContent');
+          const btn = document.getElementById('toggleManualBtn');
+          if(content.style.display === 'none') {
+             content.style.display = 'block';
+             btn.textContent = '📖 คู่มือ ▲';
+          } else {
+             content.style.display = 'none';
+             btn.textContent = '📖 คู่มือ ▼';
+          }
+      });
+  }
 
   // Cell Action Menu
   document.getElementById('camPlay')?.addEventListener('click', (e) => { e.preventDefault(); playCurrentRoom(); });
@@ -2928,7 +2902,6 @@ function init() {
         state.hand = hand;
         state.isEditMode = true;
         renderNotation();
-        updateCursorStatus();
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellEditMenu'));
         lastTap.time = 0; 
@@ -2937,7 +2910,6 @@ function init() {
         state.hand = hand;
         state.isEditMode = false;
         renderNotation();
-        updateCursorStatus();
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellActionMenu'));
         lastTap = { time: now, beat, hand };
@@ -2952,7 +2924,8 @@ function init() {
           e.target.closest('.line-play-btn') ||
           e.target.closest('.section-header') ||
           e.target.closest('.hand-label.clickable') ||
-          e.target.closest('.line-action-bar')) {
+          e.target.closest('.line-action-bar') ||
+          e.target.closest('#toggleManualWrap')) {
           return;
       }
       
@@ -2969,7 +2942,6 @@ function init() {
           state.cursorBeat = -1;
           state.isEditMode = false;
           hideCellMenus();
-          updateCursorStatus();
           needsRender = true;
       }
       
@@ -2986,12 +2958,24 @@ function init() {
   const buildImeInfographic = () => {
     const target = document.getElementById('imeInfographic'); if (!target) return;
     const C = { bg: '#1f2433', border: '#0a0e1a', text: '#ffffff', high: '#FF6FB0', mid: '#FFC93C', low: '#5CE0A0', unused: '#3a3a45' };
-    const ROWS = [[['Q','ดํ',C.high],['W','รํ',C.high],['E','มํ',C.high],['R','ฟํ',C.high],['T','ซํ',C.unused],['Y','ลํ',C.unused],['U','ทํ',C.unused]],[['A','ด',C.mid],['S','ร',C.mid],['D','ม',C.mid],['F','ฟ',C.mid],['G','ซ',C.mid],['H','ล',C.mid],['J','ท',C.mid]],[['Z','ดฺ',C.unused],['X','รฺ',C.unused],['C','มฺ',C.low],['V','ฟฺ',C.low],['B','ซฺ',C.low],['N','ลฺ',C.low],['M','ทฺ',C.low]]];
-    const KW = 54, KH = 54, GAP = 6, ROW_H = KH + GAP, padX = 20, padY = 20; let svg = '';
-    ROWS.forEach((row, ri) => { const offset = ri * 15; row.forEach((cell, ci) => {
-        const [letter, note, color] = cell; const x = padX + offset + ci * (KW + GAP); const y = padY + ri * ROW_H;
-        svg += `<g><rect x="${x}" y="${y}" width="${KW}" height="${KH}" rx="8" fill="${color}" stroke="${C.border}" stroke-width="2"/><text x="${x + KW/2}" y="${y + 20}" text-anchor="middle" fill="${C.bg}" font-size="14" font-weight="800" font-family="'SF Mono', Menlo, monospace">${letter}</text><text x="${x + KW/2}" y="${y + 44}" text-anchor="middle" fill="${C.bg}" font-size="20" font-weight="700" font-family="'Sukhumvit Set', 'Sarabun', 'Noto Sans Thai', sans-serif">${note}</text></g>`;
-      }); });
+    
+    // ตัด Z, X, T, Y, U ออก
+    const ROWS = [
+      [['Q','ดํ',C.high],['W','รํ',C.high],['E','มํ',C.high],['R','ฟํ',C.high]],
+      [['A','ด',C.mid],['S','ร',C.mid],['D','ม',C.mid],['F','ฟ',C.mid],['G','ซ',C.mid],['H','ล',C.mid],['J','ท',C.mid]],
+      [['C','มฺ',C.low],['V','ฟฺ',C.low],['B','ซฺ',C.low],['N','ลฺ',C.low],['M','ทฺ',C.low]]
+    ];
+    const KW = 54, KH = 54, GAP = 6, ROW_H = KH + GAP, padY = 20; let svg = '';
+    // จัดตำแหน่ง x ให้ตรงกลาง
+    const rowOffsets = [113, 23, 83];
+    
+    ROWS.forEach((row, ri) => { 
+        const startX = rowOffsets[ri]; 
+        row.forEach((cell, ci) => {
+            const [letter, note, color] = cell; const x = startX + ci * (KW + GAP); const y = padY + ri * ROW_H;
+            svg += `<g><rect x="${x}" y="${y}" width="${KW}" height="${KH}" rx="8" fill="${color}" stroke="${C.border}" stroke-width="2"/><text x="${x + KW/2}" y="${y + 20}" text-anchor="middle" fill="${C.bg}" font-size="14" font-weight="800" font-family="'SF Mono', Menlo, monospace">${letter}</text><text x="${x + KW/2}" y="${y + 44}" text-anchor="middle" fill="${C.bg}" font-size="20" font-weight="700" font-family="'Sukhumvit Set', 'Sarabun', 'Noto Sans Thai', sans-serif">${note}</text></g>`;
+        }); 
+    });
     target.innerHTML = `<svg viewBox="0 0 460 220" xmlns="http://www.w3.org/2000/svg">${svg}</svg>`;
   };
   buildImeInfographic();
@@ -3219,26 +3203,32 @@ function exportPDF() {
     padding-right: 2px;
   }
 
-  .print-btn {
+  .print-actions {
     position: fixed; bottom: 40px; left: 50%;
     transform: translateX(-50%);
+    display: flex; gap: 12px;
+    z-index: 1000;
+    width: 90%;
+    max-width: 500px;
+  }
+
+  .print-btn {
+    flex: 1;
     background: #000; color: #fff; border: none;
-    padding: 24px 40px; font-size: 26px; 
+    padding: 16px 20px; font-size: 20px; 
     font-family: 'Sarabun', sans-serif;
     font-weight: 700; cursor: pointer;
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    z-index: 1000;
-    width: 80%;
-    max-width: 500px;
     text-align: center;
     transition: transform 0.1s;
   }
-  .print-btn:active { transform: translateX(-50%) scale(0.96); background: #333; }
-  .print-btn:hover { background: #333; }
+  .print-btn.close { background: #ff5e7a; }
+  .print-btn:active { transform: scale(0.96); }
+  .print-btn:hover { filter: brightness(1.2); }
 
   @media print {
-    .print-btn { display: none !important; }
+    .print-actions { display: none !important; }
     body { padding: 0; background: #ffffff !important; }
   }
 </style>
@@ -3259,17 +3249,21 @@ function exportPDF() {
   </tbody>
 </table>
 
-<button class="print-btn" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+<div class="print-actions">
+   <button class="print-btn close" onclick="window.close()">❌ ปิดหน้าต่าง</button>
+   <button class="print-btn" onclick="window.print()">🖨️ พิมพ์/Save</button>
+</div>
+
 </body>
 </html>`;
 
   try {
-      const w = window.open('', '_blank', 'width=900,height=800');
+      const w = window.open('', '_blank');
       if (!w) { showToast('กรุณาอนุญาต Pop-up เพื่อเปิดหน้า PDF', 'error'); return; }
       w.document.write(printHTML);
       w.document.close();
       w.document.title = songTitle; 
-      showToast('เปิดหน้าตารางโน้ต PDF แล้ว กด "พิมพ์ / บันทึก PDF"', 'success');
+      showToast('เปิดหน้าตารางโน้ต PDF แล้ว', 'success');
   } catch(e) {
       showToast('ไม่สามารถสร้างหน้าต่าง PDF ได้ในหน้าจอนี้', 'error');
   }
@@ -3517,7 +3511,7 @@ const PDF_IMPORT = (() => {
 
     state.cursorBeat = 0;
     if (typeof chordTimer !== 'undefined' && chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-    updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
+    updateSectionStats(); renderNotation();
 
     const secCount = Object.keys(state.sections).length;
     const repCount = Object.keys(state.repeats).length;
@@ -3638,7 +3632,7 @@ const PDF_IMPORT = (() => {
       const stats = applyParsed(_parsedData);
       closeModal();
       showToast(
-        `นำเข้า PDF สำเร็จ · ${stats.numVaks} วรรค · R:${stats.noteR} L:${stats.noteL} notes` +
+        `นำเข้า PDF สำเร็จ · ${stats.numVaks} วรรค` +
         (stats.secCount ? ` · ${stats.secCount} ท่อน` : ''),
         'success'
       );
@@ -3648,7 +3642,11 @@ const PDF_IMPORT = (() => {
   }
 
   function init() {
-    document.getElementById('importPdfBtn').addEventListener('click', openModal);
+    document.getElementById('importPdfBtn').addEventListener('click', () => {
+        const importMenu = document.getElementById('importMenu');
+        if(importMenu) importMenu.classList.remove('show');
+        openModal();
+    });
     document.getElementById('cancelPdfImportBtn').addEventListener('click', closeModal);
     document.getElementById('importPdfOverlay').addEventListener('click', (e) => {
       if (e.target === document.getElementById('importPdfOverlay')) closeModal();
