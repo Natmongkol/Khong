@@ -43,7 +43,7 @@ button, input, select, .gong, .beat-cell, .toggle {
 
 /* ป้องกัน iOS Auto Zoom ในช่องกรอกข้อความสำหรับมือถือและแท็บเล็ต */
 @media (max-width: 820px) {
-  input[type="text"], input[type="number"], .tempo-input, .song-input, .sec-input, .repeat-target-input {
+  input[type="text"], input[type="number"], select, .tempo-input, .song-input, .sec-input, .repeat-target-input {
     font-size: 16px !important;
   }
 }
@@ -164,11 +164,14 @@ section.panel h3 {
 .dropdown-item:hover { background: var(--panel-3); color: var(--accent); }
 .dropdown-item + .dropdown-item { border-top: 1px solid var(--border); }
 
-.stats { display: flex; gap: 20px; flex-wrap: wrap; }
+.stats { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
 .stat { display: flex; flex-direction: column; min-width: 0; }
 .stat .label { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; white-space: nowrap; }
-.stat .value { font-family: "SF Mono", Menlo, monospace; font-size: 15px; color: var(--text); font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+.stat .value { font-family: "SF Mono", Menlo, monospace; font-size: 15px; color: var(--text); font-weight: 600; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 250px; }
 @media (max-width: 480px) { .stats { gap: 12px; } .stat .value { font-size: 13px; } }
+
+/* Override nowrap for cursor value to allow 2 lines */
+#cursorValue { white-space: normal; }
 
 .gong-stage {
   --gong-size: 40px;
@@ -222,46 +225,65 @@ section.panel h3 {
 
 .notation-wrapper { width: 100%; overflow-x: auto; padding-bottom: 8px; user-select: none; -webkit-user-select: none; }
 .notation { font-family: "SF Mono", Menlo, monospace; min-width: min(600px, 100%); touch-action: pan-x pan-y; }
-.bar-pair { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; }
+.bar-pair { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; transition: all 0.2s; }
 
-.vak-label-col { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 44px; flex-shrink: 0; }
+/* Styles for highlighted line selection */
+.bar-rows-container.selected-line {
+  background: rgba(191,140,255,0.08);
+  outline: 2px solid var(--purple);
+  border-radius: 6px;
+  padding: 4px;
+  margin: -4px;
+}
+
+.vak-label-col { display: flex; flex-direction: column; gap: 4px; align-items: center; width: 48px; flex-shrink: 0; }
 .vak-label {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   background: var(--panel-3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--text); font-size: 14px; font-weight: 700;
   width: 100%; padding: 4px 0; margin-bottom: 2px;
 }
+
 .line-action-bar { display: flex; flex-direction: column; gap: 2px; width: 100%; }
 .btn-line {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--muted); font-size: 11px; padding: 3px 0; cursor: pointer; text-align: center;
-  transition: all 0.15s;
+  color: var(--muted); font-size: 10px; padding: 4px 0; cursor: pointer; text-align: center;
+  transition: all 0.15s; font-family: inherit; font-weight: 600;
 }
 .btn-line:hover:not(:disabled) { background: var(--panel-3); color: var(--text); border-color: var(--accent); }
 .btn-line.del:hover:not(:disabled) { color: var(--red); border-color: var(--red); background: rgba(255,94,122,0.1); }
 .btn-line:disabled { opacity: 0.3; cursor: not-allowed; }
 
 @media (max-width: 400px) {
-  .vak-label-col { width: 32px; }
+  .vak-label-col { width: 40px; }
   .vak-label { font-size: 11px; }
   .hand-label { font-size: 9px !important; }
   .bar-pair { gap: 4px; }
   .bar-row { gap: 2px !important; }
+  .btn-line { font-size: 9px; padding: 3px 0; }
 }
 
 .line-play-btn { cursor: pointer; color: var(--green); font-size: 10px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.15s; background: rgba(63,223,142,0.1); margin-bottom: 4px; padding-left: 2px; border: 1px solid rgba(63,223,142,0.3); }
 .line-play-btn:hover { background: var(--green); color: var(--bg); transform: scale(1.1); box-shadow: 0 2px 6px rgba(63,223,142,0.3); }
 .line-play-btn.stop-active { color: var(--red); border-color: rgba(255,94,122,0.3); background: rgba(255,94,122,0.1); padding-left: 0; font-size: 12px; }
 .line-play-btn.stop-active:hover { background: var(--red); color: var(--bg); box-shadow: 0 2px 6px rgba(255,94,122,0.3); }
-.line-num { font-size: 12px; color: var(--muted); }
+.line-num { font-size: 12px; color: var(--muted); pointer-events: none; }
 
-.bar-rows-container { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.bar-rows-container { flex: 1; display: flex; flex-direction: column; min-width: 0; transition: all 0.2s; }
 .bar-row { display: grid; gap: 4px; margin-bottom: 2px; }
 .hand-label {
   display: flex; align-items: center; justify-content: center;
   background: var(--panel-3); border: 1px solid var(--border);
   border-radius: 6px; color: var(--muted); font-size: 11px; font-weight: 600;
 }
+.hand-label.clickable {
+  cursor: pointer; transition: all 0.2s;
+}
+.hand-label.clickable:hover {
+  border-color: var(--purple); color: var(--text);
+  box-shadow: 0 0 8px rgba(191,140,255,0.3);
+}
+
 .bar-cell {
   display: grid; grid-template-columns: repeat(4, 1fr);
   background: var(--panel-2); border: 1px solid var(--border);
@@ -334,8 +356,8 @@ section.panel h3 {
   font-family: "SF Mono", Menlo, monospace;
 }
 
-.line-wrap { margin-bottom: 16px; }
-.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding-left: 52px; flex-wrap: wrap; }
+.line-wrap { margin-bottom: 16px; transition: all 0.2s; }
+.section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; padding-left: 56px; flex-wrap: wrap; }
 .sec-title { font-size: 12px; font-weight: 700; color: var(--accent); background: rgba(91,158,255,0.1); padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(91,158,255,0.3); }
 .btn-sec { background: var(--panel-3); border: 1px solid var(--border); color: var(--text); font-size: 11px; font-weight:600; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: 0.15s; font-family: inherit; }
 .btn-sec:hover { background: var(--panel); border-color: var(--accent); }
@@ -381,36 +403,31 @@ section.panel h3 {
 .touch-sel-menu {
   position: fixed; z-index: 1000;
   background: rgba(19, 24, 38, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--border); border-radius: 8px; display: flex; flex-wrap: wrap; max-width: min(320px, 90vw); justify-content: center;
+  border: 1px solid var(--border); border-radius: 8px; display: flex; flex-wrap: wrap; max-width: min(300px, 92vw); justify-content: center;
   box-shadow: 0 8px 32px rgba(0,0,0,0.5); overflow: hidden;
   transform: translate(-50%, 0); transition: opacity 0.2s, transform 0.2s;
 }
 .touch-sel-menu.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, 10px); }
 .touch-sel-menu.menu-below.hidden { transform: translate(-50%, -10px); }
 .tsm-btn {
-  background: transparent; border: none; color: var(--text); padding: 10px 8px;
-  font-size: 12px; font-weight: 600; cursor: pointer; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
-  font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  flex: 1 1 30%;
+  background: transparent; border: none; color: var(--text); padding: 8px 4px;
+  font-size: 11px; font-weight: 500; cursor: pointer; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+  font-family: inherit; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  flex: 1 1 24%;
 }
-.tsm-btn:nth-child(3n) { border-right: none; }
-.tsm-btn:nth-child(n+4) { border-bottom: none; }
+.tsm-btn:nth-child(4n) { border-right: none; }
+.tsm-btn:nth-child(n+5) { border-bottom: none; }
 .tsm-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-.tsm-icon { font-size: 16px; line-height: 1; }
+.tsm-icon { font-size: 14px; line-height: 1; }
 .tsm-play { color: var(--green); }
 .tsm-del { color: var(--red); }
 
-#multiSelectActionMenu .tsm-btn { flex: 1 1 45%; border-bottom: none; }
+#multiSelectActionMenu .tsm-btn { flex: 1 1 45%; border-bottom: none; padding: 10px 14px; font-size: 12px; }
 #multiSelectActionMenu .tsm-btn:nth-child(1), #multiSelectActionMenu .tsm-btn:nth-child(2) { border-bottom: 1px solid var(--border); }
 #multiSelectActionMenu .tsm-btn:nth-child(even) { border-right: none; }
 
-.touch-sel-badge {
-  position: fixed; z-index: 1001; background: var(--accent); color: var(--bg);
-  padding: 6px 12px; border-radius: 12px; font-size: 13px; font-weight: 700;
-  transform: translate(-50%, -100%); pointer-events: none;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3); transition: opacity 0.15s;
-}
-.touch-sel-badge.hidden { opacity: 0; }
+#lineActionMenu .tsm-btn { flex: 1 1 30%; border-bottom: none; padding: 10px 14px; font-size: 12px; }
+#lineActionMenu .tsm-btn:nth-child(3n) { border-right: none; }
 
 .mobile-hand-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .hand-switcher { display: flex; border-radius: 8px; overflow: hidden; border: 1px solid var(--border); }
@@ -528,6 +545,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 .save-badge.fs { background: rgba(91,158,255,0.15); color: var(--accent); border: 1px solid rgba(91,158,255,0.3); }
 .save-badge.ls { background: rgba(63,223,142,0.12); color: var(--green); border: 1px solid rgba(63,223,142,0.25); }
 .save-file-name { font-size: 12px; color: var(--muted); font-family: 'SF Mono', Menlo, monospace; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* MP3 Export Modal Selects */
+.mp3-select {
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 10px; color: var(--text);
+  font-family: inherit; font-size: 13px; outline: none; flex: 1;
+}
+.mp3-select:focus { border-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -571,7 +596,12 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
         </button>
         <button class="btn primary" id="playBtn" style="margin-left: auto;" aria-label="เล่นเพลง">▶ Play</button>
         <button class="btn" id="stopBtn" aria-label="หยุดเล่น">■ Stop</button>
-        <button class="btn" id="undoBtn" disabled aria-label="ย้อนกลับ">↩ Undo</button>
+        <label class="toggle" style="margin-left: 4px; cursor: pointer;">
+          <input type="checkbox" id="autoScrollToggle" checked style="accent-color: var(--accent); margin:0;">
+          <span style="font-size: 11px; color: var(--muted); margin-left: 4px; font-weight: 600;">Auto-Scroll</span>
+        </label>
+        
+        <button class="btn" id="undoBtn" disabled aria-label="ย้อนกลับ" style="margin-left: 4px;">↩ Undo</button>
         <button class="btn" id="redoBtn" disabled aria-label="ทำซ้ำ">↻ Redo</button>
         <button class="btn danger" id="clearBtn" aria-label="ล้างโน้ตทั้งหมด">✕ Clear</button>
         
@@ -599,12 +629,12 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
       </div>
     </div>
     <div class="section-spacer" style="height:10px"></div>
-    <div class="stats">
-      <div class="stat"><span class="label">Cursor</span><span class="value" id="cursorValue">มือขวา · ห้อง 1 · จังหวะ 1</span></div>
+    <div class="stats" id="statsContainer">
+      <div class="stat"><span class="label">Cursor</span><span class="value" id="cursorValue"><span style="font-size: 13px; color: var(--muted);">ไม่ได้เลือกห้อง</span></span></div>
       <div class="stat"><span class="label">Playback</span><span class="value" id="beatValue">— / —</span></div>
       <div class="stat"><span class="label">มือขวา</span><span class="value" id="rightCount">0 notes</span></div>
       <div class="stat"><span class="label">มือซ้าย</span><span class="value" id="leftCount">0 notes</span></div>
-      <div class="stat"><span class="label">โครงสร้างท่อน</span><span class="value" id="sectionCount">1 ท่อน (1 บรรทัด)</span></div>
+      <div class="stat"><span class="label">โครงสร้างท่อน</span><span class="value" id="sectionCount">1 ท่อน</span></div>
     </div>
 
     <div class="save-panel">
@@ -692,21 +722,28 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 </main>
 
 <div class="touch-sel-menu hidden" id="cellActionMenu">
-  <button class="tsm-btn" id="camPlay"><span class="tsm-icon">▶</span>เล่นห้องนี้</button>
-  <button class="tsm-btn" id="camEdit"><span class="tsm-icon">✏️</span>แก้ไขโน้ต</button>
+  <button class="tsm-btn" id="camPlay"><span class="tsm-icon">▶</span>เล่นห้อง</button>
+  <button class="tsm-btn" id="camEdit"><span class="tsm-icon">✏️</span>แก้โน้ต</button>
   <button class="tsm-btn" id="camCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
   <button class="tsm-btn" id="camPaste" disabled><span class="tsm-icon">⎙</span>วาง</button>
-  <button class="tsm-btn" id="camMulti"><span class="tsm-icon">☑️</span>เลือกหลายห้อง</button>
+  <button class="tsm-btn" id="camMulti"><span class="tsm-icon">☑️</span>เลือกหลาย</button>
+  <button class="tsm-btn" id="camDecBar"><span class="tsm-icon">-</span>ลดห้อง</button>
+  <button class="tsm-btn" id="camIncBar"><span class="tsm-icon">+</span>เพิ่มห้อง</button>
   <button class="tsm-btn tsm-del" id="camDel"><span class="tsm-icon">⌫</span>ลบ</button>
 </div>
 <div class="touch-sel-menu hidden" id="cellEditMenu">
-  <button class="tsm-btn tsm-play" id="cemOk"><span class="tsm-icon">✓</span>ตกลง (ปิด)</button>
+  <button class="tsm-btn tsm-play" id="cemOk" style="flex: 1 1 100%; border-right: none;"><span class="tsm-icon">✓</span>ตกลง (ปิดโหมดพิมพ์)</button>
+</div>
+<div class="touch-sel-menu hidden" id="lineActionMenu">
+  <button class="tsm-btn" id="lamCopy"><span class="tsm-icon">⎘</span>คัดลอกบรรทัด</button>
+  <button class="tsm-btn" id="lamPaste" disabled><span class="tsm-icon">⎙</span>วางบรรทัด</button>
+  <button class="tsm-btn" id="lamCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
 </div>
 <div class="touch-sel-menu hidden" id="multiSelectActionMenu" style="top: auto; bottom: 80px; left: 50%; transform: translateX(-50%); box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
-  <button class="tsm-btn" id="msmCopy" style="padding: 12px 24px; font-size: 14px;"><span class="tsm-icon">⎘</span>คัดลอก</button>
-  <button class="tsm-btn" id="msmPaste" disabled style="padding: 12px 24px; font-size: 14px;"><span class="tsm-icon">⎙</span>วาง</button>
-  <button class="tsm-btn tsm-play" id="msmPlay" style="padding: 12px 24px; font-size: 14px;"><span class="tsm-icon">▶</span>เล่นซ้ำที่เลือก</button>
-  <button class="tsm-btn" id="msmCancel" style="padding: 12px 24px; font-size: 14px;"><span class="tsm-icon">✕</span>ยกเลิก</button>
+  <button class="tsm-btn" id="msmCopy" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">⎘</span>คัดลอก</button>
+  <button class="tsm-btn" id="msmPaste" disabled style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">⎙</span>วาง</button>
+  <button class="tsm-btn tsm-play" id="msmPlay" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">▶</span>เล่นซ้ำ</button>
+  <button class="tsm-btn" id="msmCancel" style="padding: 10px 16px; font-size: 12px;"><span class="tsm-icon">✕</span>ยกเลิก</button>
 </div>
 
 <div class="touch-keyboard" id="touchKeyboard">
@@ -800,6 +837,30 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   </div>
 </div>
 
+<!-- Modal สำหรับ เลือกช่วงท่อน Export MP3 -->
+<div class="modal-overlay" id="exportMp3Modal">
+  <div class="modal-content" style="max-width: 450px;">
+    <h3 class="modal-title">🎵 Export MP3 (เลือกท่อน)</h3>
+    <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+       <div style="display:flex; flex-direction:column; gap:6px;">
+         <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มตั้งแต่ท่อน:</label>
+         <select id="exMp3StartSel" class="mp3-select"></select>
+       </div>
+       <div style="display:flex; flex-direction:column; gap:6px;">
+         <label style="font-size:12px; font-weight:600; color:var(--muted);">จนถึงสิ้นสุดท่อนที่:</label>
+         <select id="exMp3EndSel" class="mp3-select"></select>
+       </div>
+    </div>
+    <div class="modal-actions" style="justify-content: space-between;">
+      <button class="btn" id="exportMp3FullBtn">ส่งออกทั้งหมด</button>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" onclick="document.getElementById('exportMp3Modal').classList.remove('show')">ยกเลิก</button>
+        <button class="btn export-btn" id="confirmExportMp3Btn">⬇ สร้างไฟล์ MP3</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Modal: Import PDF ===== -->
 <div class="modal-overlay" id="importPdfOverlay">
   <div class="modal-content" style="max-width:520px; width:92%;">
@@ -877,12 +938,13 @@ function showToast(message, type = 'success') {
 function hideCellMenus() {
   document.getElementById('cellActionMenu')?.classList.add('hidden');
   document.getElementById('cellEditMenu')?.classList.add('hidden');
+  document.getElementById('lineActionMenu')?.classList.add('hidden');
 }
 
 function positionMenuForCell(menu) {
   if (!menu || state.cursorBeat === -1) return;
   const pasteBtn = document.getElementById('camPaste');
-  if (pasteBtn) pasteBtn.disabled = !customClipboard;
+  if (pasteBtn) pasteBtn.disabled = !customClipboard || customClipboard.type === 'line';
 
   requestAnimationFrame(() => {
       const cell = document.querySelector(`.beat-cell[data-beat="${state.cursorBeat}"][data-hand="${state.hand}"]`);
@@ -917,6 +979,34 @@ function positionMenuForCell(menu) {
   });
 }
 
+function positionLineMenu(clientX, clientY) {
+  const menu = document.getElementById('lineActionMenu');
+  if (!menu) return;
+  const pasteBtn = document.getElementById('lamPaste');
+  if (pasteBtn) pasteBtn.disabled = !customClipboard || customClipboard.type !== 'line';
+
+  requestAnimationFrame(() => {
+      const menuWidth = menu.offsetWidth || 240;
+      let menuX = clientX;
+      
+      if (menuX - menuWidth / 2 < 10) menuX = menuWidth / 2 + 10;
+      if (menuX + menuWidth / 2 > window.innerWidth - 10) menuX = window.innerWidth - menuWidth / 2 - 10;
+
+      let topPx = clientY - 10 - menu.offsetHeight;
+      let belowMenu = false;
+
+      if (topPx < 60) {
+          belowMenu = true;
+          topPx = clientY + 14;
+      }
+
+      menu.classList.toggle('menu-below', belowMenu);
+      menu.style.left = menuX + 'px';
+      menu.style.top  = topPx + 'px';
+      menu.classList.remove('hidden');
+  });
+}
+
 const NUM_GONGS = 16;
 const BEATS_PER_BAR = 4;
 const BARS_PER_VAK = 8;       
@@ -939,9 +1029,10 @@ function noteText(idx) { return NOTE_BASE[idx]; }
 const state = {
   songName: '', hand: 'right', bpm: 200, numBars: 8, cursorBeat: -1,
   isRecording: true, isPlaying: false, playStart: 0, currentBeat: -1,
-  notes: { right: [], left: [] }, clipboardVak: null, repeats: {}, sections: {},
+  notes: { right: [], left: [] }, clipboardVak: null, repeats: {}, sections: {}, lineLengths: {},
   playMode: 'all', selectionHands: ['right', 'left'], _editingSection: null,
-  isEditMode: false, isMultiSelectMode: false, selectedRooms: new Set(), currentPlayingLine: null
+  isEditMode: false, isMultiSelectMode: false, selectedRooms: new Set(), currentPlayingLine: null,
+  selectedLine: null
 };
 
 let lastTap = { time: 0, beat: -1, hand: '' };
@@ -956,7 +1047,7 @@ function pushUndo() {
   undoStack.push({
     right: [...state.notes.right], left: [...state.notes.left],
     cursorBeat: state.cursorBeat, hand: state.hand, numBars: state.numBars,
-    repeats: {...state.repeats}, sections: {...state.sections}
+    repeats: {...state.repeats}, sections: {...state.sections}, lineLengths: {...state.lineLengths}
   });
   if (undoStack.length > MAX_UNDO) undoStack.shift();
   redoStack = []; 
@@ -968,7 +1059,7 @@ function performUndo() {
   redoStack.push({
     right: [...state.notes.right], left: [...state.notes.left],
     cursorBeat: state.cursorBeat, hand: state.hand, numBars: state.numBars,
-    repeats: {...state.repeats}, sections: {...state.sections}
+    repeats: {...state.repeats}, sections: {...state.sections}, lineLengths: {...state.lineLengths}
   });
   
   const snap = undoStack.pop();
@@ -982,7 +1073,7 @@ function performRedo() {
   undoStack.push({
     right: [...state.notes.right], left: [...state.notes.left],
     cursorBeat: state.cursorBeat, hand: state.hand, numBars: state.numBars,
-    repeats: {...state.repeats}, sections: {...state.sections}
+    repeats: {...state.repeats}, sections: {...state.sections}, lineLengths: {...state.lineLengths}
   });
   
   const snap = redoStack.pop();
@@ -997,12 +1088,15 @@ function restoreSnapshot(snap) {
   state.notes.right = snap.right; state.notes.left = snap.left;
   state.cursorBeat = snap.cursorBeat; state.hand = snap.hand;
   state.repeats = snap.repeats || {}; state.sections = snap.sections || {};
+  state.lineLengths = snap.lineLengths || {};
   state._editingSection = null;
+  state.selectedLine = null;
   state.isMultiSelectMode = false;
   if(state.selectedRooms) state.selectedRooms.clear();
   document.getElementById('multiSelectActionMenu')?.classList.add('hidden');
+  hideCellMenus();
   
-  ensureCapacity(); updateCounts(); updateCursorStatus(); renderNotation();
+  ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
   if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
 }
 
@@ -1289,13 +1383,13 @@ function copyRoom() {
     const data = { right: [], left: [] };
     data.right = state.notes.right.slice(startB, startB + 4);
     data.left  = state.notes.left.slice(startB, startB + 4);
-    customClipboard = { type: 'both', data, length: 4, originalHand: 'right' };
+    customClipboard = { type: 'room', data, length: 4, originalHand: 'right' };
     showToast('คัดลอกโน้ต 1 ห้อง (ทั้ง 2 มือ) เรียบร้อย', 'success');
     hideCellMenus();
 }
 
 function pasteRoom() {
-    if (!customClipboard || state.cursorBeat === -1) return;
+    if (!customClipboard || state.cursorBeat === -1 || customClipboard.type === 'line') return;
     pushUndo();
     const bar = Math.floor(state.cursorBeat / 4);
     const startB = bar * 4;
@@ -1336,7 +1430,7 @@ function copyMultiRooms() {
         }
     });
     
-    customClipboard = { type: 'both', data, length: copiedLength, originalHand: 'right' };
+    customClipboard = { type: 'room', data, length: copiedLength, originalHand: 'right' };
     showToast(`คัดลอก ${rooms.length} ห้องเรียบร้อย`, 'success');
     
     state.isMultiSelectMode = false;
@@ -1346,7 +1440,7 @@ function copyMultiRooms() {
 }
 
 function pasteMultiRooms() {
-    if (!customClipboard || !state.selectedRooms || state.selectedRooms.size === 0) return;
+    if (!customClipboard || !state.selectedRooms || state.selectedRooms.size === 0 || customClipboard.type === 'line') return;
     pushUndo();
     const len = customClipboard.length;
 
@@ -1361,16 +1455,10 @@ function pasteMultiRooms() {
         const [, bStr] = roomKey.split(':');
         const startB = parseInt(bStr) * 4;
         
-        if (customClipboard.type === 'both') {
+        if (customClipboard.data.right) {
             for (let i = 0; i < len; i++) {
                 state.notes.right[startB + i] = customClipboard.data.right[i];
                 state.notes.left[startB + i] = customClipboard.data.left[i];
-            }
-        } else {
-            const sourceHand = customClipboard.originalHand;
-            for (let i = 0; i < len; i++) {
-                state.notes.right[startB + i] = customClipboard.data[sourceHand][i];
-                state.notes.left[startB + i]  = customClipboard.data[sourceHand][i];
             }
         }
     });
@@ -1392,14 +1480,16 @@ function deleteLine(lineIndex) {
     state.numBars -= BARS_PER_VAK;
     document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
-    const newSec = {}; const newRep = {};
+    const newSec = {}; const newRep = {}; const newLen = {};
     const totalLinesOld = (state.numBars + 8) / 8;
     for (let i = 1; i <= totalLinesOld; i++) {
         if (i < lineIndex + 1) {
             if (state.sections[i]) newSec[i] = state.sections[i];
             if (state.repeats[i]) newRep[i] = state.repeats[i];
+            if (state.lineLengths[i]) newLen[i] = state.lineLengths[i];
         } else if (i > lineIndex + 1) {
             if (state.sections[i]) newSec[i - 1] = state.sections[i];
+            if (state.lineLengths[i]) newLen[i - 1] = state.lineLengths[i];
             if (state.repeats[i]) {
                 let target = state.repeats[i];
                 if (target > lineIndex + 1) target--;
@@ -1407,8 +1497,9 @@ function deleteLine(lineIndex) {
             }
         }
     }
-    state.sections = newSec; state.repeats = newRep;
+    state.sections = newSec; state.repeats = newRep; state.lineLengths = newLen;
     if (state.cursorBeat >= state.notes.right.length) state.cursorBeat = -1;
+    updateSectionStats();
     renderNotation();
     showToast('ลบบรรทัดเรียบร้อย', 'success');
 }
@@ -1422,14 +1513,16 @@ function insertLine(lineIndex) {
     state.numBars += BARS_PER_VAK;
     document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
-    const newSec = {}; const newRep = {};
+    const newSec = {}; const newRep = {}; const newLen = {};
     const totalLinesNew = state.numBars / 8;
     for (let i = totalLinesNew; i >= 1; i--) {
         if (i <= lineIndex + 1) {
             if (state.sections[i]) newSec[i] = state.sections[i];
             if (state.repeats[i]) newRep[i] = state.repeats[i];
+            if (state.lineLengths[i]) newLen[i] = state.lineLengths[i];
         } else {
             if (state.sections[i - 1]) newSec[i] = state.sections[i - 1];
+            if (state.lineLengths[i - 1]) newLen[i] = state.lineLengths[i - 1];
             if (state.repeats[i - 1]) {
                 let target = state.repeats[i - 1];
                 if (target > lineIndex + 1) target++;
@@ -1437,8 +1530,9 @@ function insertLine(lineIndex) {
             }
         }
     }
-    state.sections = newSec; state.repeats = newRep;
+    state.sections = newSec; state.repeats = newRep; state.lineLengths = newLen;
     if (state.cursorBeat >= insertAt) state.cursorBeat += 32;
+    updateSectionStats();
     renderNotation();
     showToast('แทรกบรรทัดใหม่แล้ว', 'success');
 }
@@ -1456,6 +1550,7 @@ function moveLineUp(lineIndex) {
     state.notes.left.splice(startA + 32, 0, ...chunkLA);
 
     const L1 = lineIndex; const L2 = lineIndex + 1;
+    
     const tempSec = state.sections[L1];
     if (state.sections[L2]) state.sections[L1] = state.sections[L2]; else delete state.sections[L1];
     if (tempSec) state.sections[L2] = tempSec; else delete state.sections[L2];
@@ -1463,10 +1558,15 @@ function moveLineUp(lineIndex) {
     const tempRep = state.repeats[L1];
     if (state.repeats[L2]) state.repeats[L1] = state.repeats[L2]; else delete state.repeats[L1];
     if (tempRep) state.repeats[L2] = tempRep; else delete state.repeats[L2];
+    
+    const tempLen = state.lineLengths[L1];
+    if (state.lineLengths[L2]) state.lineLengths[L1] = state.lineLengths[L2]; else delete state.lineLengths[L1];
+    if (tempLen) state.lineLengths[L2] = tempLen; else delete state.lineLengths[L2];
 
     if (state.cursorBeat >= startA && state.cursorBeat < startA + 32) state.cursorBeat += 32;
     else if (state.cursorBeat >= startA + 32 && state.cursorBeat < startA + 64) state.cursorBeat -= 32;
 
+    updateSectionStats();
     renderNotation();
 }
 
@@ -1489,47 +1589,88 @@ function updateSectionStats() {
   if (!sectionKeys.includes(1)) sectionKeys.unshift(1);
   
   sectionLineMap = sectionKeys;
-  let sectionLines = [];
+  
+  // อัปเดตข้อมูลจำนวนท่อนรวม
+  const el = document.getElementById('sectionCount');
+  if (el) el.textContent = `${sectionKeys.length} ท่อน`;
 
+  // ลบ Block สถิติท่อนย่อยของเก่าออกให้หมดก่อน
+  document.querySelectorAll('.dynamic-sec-stat').forEach(e => e.remove());
+  const statsContainer = document.getElementById('statsContainer');
+  if (!statsContainer) return;
+
+  // สร้าง Block สถิติแบบแถว/คอลัมน์ใหม่ สำหรับแต่ละท่อน
   for (let i = 0; i < sectionKeys.length; i++) {
       let secStart = sectionKeys[i];
       let nextSecStart = (i + 1 < sectionKeys.length) ? sectionKeys[i+1] : totalLines + 1;
-      sectionLines.push(nextSecStart - secStart);
+      let numLines = nextSecStart - secStart;
+      
+      let secName = (state.sections && state.sections[secStart]) ? state.sections[secStart] : `ท่อนที่ ${i + 1}`;
+      
+      const statDiv = document.createElement('div');
+      statDiv.className = 'stat dynamic-sec-stat';
+      statDiv.innerHTML = `<span class="label" title="${secName}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${secName}</span><span class="value">${numLines} บรรทัด</span>`;
+      statsContainer.appendChild(statDiv);
   }
-  
-  const secCount = sectionLines.length;
-  const linesDetail = sectionLines.join(', ');
-  const el = document.getElementById('sectionCount');
-  if (el) el.textContent = `${secCount} ท่อน (${linesDetail} บรรทัด)`;
 }
 
 function updateCursorStatus() {
   if (state.cursorBeat === -1) {
-      document.getElementById('cursorValue').textContent = 'ไม่ได้เลือกห้อง';
+      document.getElementById('cursorValue').innerHTML = '<span style="font-size: 13px; color: var(--muted);">ไม่ได้เลือกห้อง</span>';
       if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
       return;
   }
-  const beat = state.cursorBeat; const beatsPerVak = BARS_PER_VAK * BEATS_PER_BAR;
-  const barInVak = Math.floor((beat % beatsPerVak) / BEATS_PER_BAR) + 1; 
+  
+  const beat = state.cursorBeat;
+  const globalBar = Math.floor(beat / 4);
+  const lineNum = Math.floor(globalBar / 8) + 1;
+  const barInVak = Math.floor((beat % 32) / BEATS_PER_BAR) + 1; 
   const within = (beat % BEATS_PER_BAR) + 1;
   const handTh = state.hand === 'right' ? 'มือขวา' : 'มือซ้าย';
   
+  const sectionKeys = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
+  if (!sectionKeys.includes(1)) sectionKeys.unshift(1);
+  
+  let currentSecStart = 1;
+  let currentSecName = 'ท่อนที่ 1';
+  
+  for (let i = 0; i < sectionKeys.length; i++) {
+      if (lineNum >= sectionKeys[i]) {
+          currentSecStart = sectionKeys[i];
+          currentSecName = (state.sections && state.sections[sectionKeys[i]]) ? state.sections[sectionKeys[i]] : `ท่อนที่ ${i + 1}`;
+      } else {
+          break;
+      }
+  }
+  
+  const relativeLine = lineNum - currentSecStart + 1;
+  
   if (typeof updateHandSwitcher === 'function') updateHandSwitcher();
-  document.getElementById('cursorValue').textContent = `${handTh} · ห้อง ${barInVak} · จังหวะ ${within}`;
+  
+  // ให้ Cursor แสดงผลเป็น 2 บรรทัด (ชื่อท่อนอยู่บน, ลำดับบรรทัดและข้อมูลจังหวะอยู่ล่าง)
+  document.getElementById('cursorValue').innerHTML = `
+    <span style="display: flex; flex-direction: column; line-height: 1.4; padding-top: 2px;">
+      <span style="font-size: 14px; color: var(--accent); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;" title="${currentSecName}">${currentSecName}</span>
+      <span style="font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">บรรทัดที่ ${relativeLine} <span style="font-size: 10px; color: var(--muted);">(${handTh} · ห้อง ${barInVak} · จังหวะ ${within})</span></span>
+    </span>
+  `;
 }
 
 function renderNotation() {
   const root = document.getElementById('notation');
   root.innerHTML = ''; const lines = Math.ceil(state.numBars / 8);
   if (!state.sections) state.sections = {};
+  if (!state.lineLengths) state.lineLengths = {};
   
   let currentSectionStartLine = 1;
 
   for (let line = 0; line < lines; line++) {
-    const startBar = line * 8; const endBar = Math.min(startBar + 8, state.numBars); const barsInLine = endBar - startBar;
-    
-    const lineWrap = document.createElement('div'); lineWrap.className = 'line-wrap';
+    const startBar = line * 8; 
     const lineNum = line + 1;
+    const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
+    
+    const lineWrap = document.createElement('div'); 
+    lineWrap.className = 'line-wrap';
 
     if (state.sections[lineNum] !== undefined) {
          currentSectionStartLine = lineNum;
@@ -1565,17 +1706,17 @@ function renderNotation() {
     secHeader.addEventListener('click', (e) => {
         if (e.target.classList.contains('add-sec')) {
             state.sections[lineNum] = `ท่อนที่ ${Object.keys(state.sections).length + 1}`; 
-            state._editingSection = lineNum; renderNotation();
+            state._editingSection = lineNum; updateSectionStats(); renderNotation();
         }
         else if (e.target.classList.contains('edit-sec')) { state._editingSection = lineNum; renderNotation(); }
-        else if (e.target.classList.contains('del-sec')) { pushUndo(); delete state.sections[lineNum]; renderNotation(); }
+        else if (e.target.classList.contains('del-sec')) { pushUndo(); delete state.sections[lineNum]; updateSectionStats(); renderNotation(); }
         else if (e.target.classList.contains('cancel-sec')) { state._editingSection = null; renderNotation(); }
         else if (e.target.classList.contains('save-sec')) {
             const val = document.getElementById(`secInp-${lineNum}`).value.trim();
             pushUndo();
             if (val) state.sections[lineNum] = val; 
             else delete state.sections[lineNum];
-            state._editingSection = null; renderNotation();
+            state._editingSection = null; updateSectionStats(); renderNotation();
         }
         else if (e.target.classList.contains('play-sec')) { playSection(lineNum); }
         else if (e.target.classList.contains('play-range-sec')) { openPlayRangeModal(lineNum); }
@@ -1594,17 +1735,18 @@ function renderNotation() {
     const vakLabelCol = document.createElement('div');
     vakLabelCol.className = 'vak-label-col';
     
-    const vakLabel = document.createElement('div'); vakLabel.className = 'vak-label';
+    const vakLabel = document.createElement('div'); 
+    vakLabel.className = 'vak-label';
     
     const isPlayingThisLine = state.isPlaying && state.playMode === 'line' && state.currentPlayingLine === lineNum;
     const btnIcon = isPlayingThisLine ? '■' : '▶';
-    const btnTitle = isPlayingThisLine ? 'หยุดเล่น' : 'เล่นบรรทัดนี้ (รวดเดียวจบ)';
     const btnClass = isPlayingThisLine ? 'line-play-btn stop-active' : 'line-play-btn';
     
     vakLabel.innerHTML = `
-      <div class="${btnClass}" title="${btnTitle}">${btnIcon}</div>
+      <div class="${btnClass}">${btnIcon}</div>
       <div class="line-num">${displayLineNum}</div>
     `;
+
     vakLabel.querySelector('.line-play-btn').addEventListener('click', () => { playLine(lineNum); });
     
     const lineActionBar = document.createElement('div');
@@ -1612,30 +1754,51 @@ function renderNotation() {
     lineActionBar.innerHTML = `
       <button class="btn-line" title="เลื่อนบรรทัดขึ้น" ${line === 0 ? 'disabled' : ''}>▲</button>
       <button class="btn-line" title="เลื่อนบรรทัดลง" ${line === lines - 1 ? 'disabled' : ''}>▼</button>
-      <button class="btn-line" title="แทรกบรรทัดด้านล่าง">➕</button>
       <button class="btn-line del" title="ลบบรรทัดนี้">🗑</button>
     `;
     
     const lineBtns = lineActionBar.querySelectorAll('.btn-line');
-    lineBtns[0].addEventListener('click', () => moveLineUp(line));
-    lineBtns[1].addEventListener('click', () => moveLineDown(line));
-    lineBtns[2].addEventListener('click', () => insertLine(line));
-    lineBtns[3].addEventListener('click', () => deleteLine(line));
+    lineBtns[0].addEventListener('click', (e) => { e.stopPropagation(); moveLineUp(line); });
+    lineBtns[1].addEventListener('click', (e) => { e.stopPropagation(); moveLineDown(line); });
+    lineBtns[2].addEventListener('click', (e) => { e.stopPropagation(); deleteLine(line); });
 
     vakLabelCol.appendChild(vakLabel);
     vakLabelCol.appendChild(lineActionBar);
     pair.appendChild(vakLabelCol);
     
-    const rowsContainer = document.createElement('div'); rowsContainer.className = 'bar-rows-container';
+    const rowsContainer = document.createElement('div'); 
+    rowsContainer.className = 'bar-rows-container';
+    
+    // ไฮไลท์แค่บริเวณตารางโน้ต
+    if (state.selectedLine === lineNum) {
+        rowsContainer.classList.add('selected-line');
+    }
     
     ['right', 'left'].forEach(hand => {
       const row = document.createElement('div'); row.className = 'bar-row ' + hand;
       const labelWidth = window.innerWidth <= 400 ? '24px' : '72px';
-      row.style.gridTemplateColumns = `${labelWidth} repeat(${barsInLine}, 1fr)`;
-      const label = document.createElement('div'); label.className = 'hand-label';
-      label.textContent = hand === 'right' ? 'มือขวา' : 'มือซ้าย'; row.appendChild(label);
+      // บังคับให้โครงสร้าง grid เป็น 8 ช่องเสมอ ไม่ว่าจะตั้ง length ไว้เท่าไหร่ เพื่อไม่ให้ตารางขยับ
+      row.style.gridTemplateColumns = `${labelWidth} repeat(8, 1fr)`;
+      
+      const label = document.createElement('div'); 
+      label.className = 'hand-label' + (hand === 'right' ? ' clickable' : '');
+      label.textContent = hand === 'right' ? 'มือขวา' : 'มือซ้าย';
+      
+      // การกดคัดลอกบรรทัดมาที่ป้าย "มือขวา"
+      if (hand === 'right') {
+          label.title = 'แตะที่นี่เพื่อคัดลอก/วางบรรทัด';
+          label.addEventListener('click', (e) => {
+              state.selectedLine = lineNum;
+              renderNotation(); 
+              hideCellMenus();
+              positionLineMenu(e.clientX, e.clientY);
+          });
+      }
+      
+      row.appendChild(label);
 
-      for (let b = startBar; b < endBar; b++) {
+      // วนลูปเฉพาะจำนวนห้องที่มีจริงๆ (ที่เหลือขวาจะว่างตาม CSS Grid)
+      for (let b = startBar; b < startBar + barsInThisLine; b++) {
         const barInLine = b - startBar + 1; 
         const barCell = document.createElement('div'); barCell.className = 'bar-cell'; barCell.title = `ห้อง ${barInLine}`;
         
@@ -1727,11 +1890,13 @@ function renderNotation() {
 
 function getPlaybackSequence() {
   const seq = []; const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR; let currentLine = 1; const repeated = new Set();
+  let currentLine = 1; const repeated = new Set();
   const MAX_STEPS = totalLines * 4; let steps = 0;
 
   while (currentLine <= totalLines && steps++ < MAX_STEPS) {
-    const startBeat = (currentLine - 1) * beatsPerLine; const endBeat = startBeat + beatsPerLine - 1;
+    const barsInThisLine = state.lineLengths[currentLine] !== undefined ? state.lineLengths[currentLine] : BARS_PER_VAK;
+    const startBeat = (currentLine - 1) * 32; 
+    const endBeat = startBeat + (barsInThisLine * 4) - 1;
     for (let b = startBeat; b <= endBeat; b++) if (b < totalBeats()) seq.push(b);
     
     if (state.repeats && state.repeats[currentLine] !== undefined && !repeated.has(currentLine)) {
@@ -1790,6 +1955,28 @@ function playSelectedRooms() {
   scheduler();
 }
 
+function buildSequenceForRange(startSectionLine, absoluteEndLine) {
+  const seq = [];
+  let currentLine = startSectionLine;
+  const repeated = new Set();
+  const MAX_STEPS = (absoluteEndLine - startSectionLine + 1) * 4; let steps = 0;
+
+  while (currentLine <= absoluteEndLine && steps++ < MAX_STEPS) {
+      const barsInThisLine = state.lineLengths[currentLine] !== undefined ? state.lineLengths[currentLine] : BARS_PER_VAK;
+      const startBeat = (currentLine - 1) * 32;
+      const endB = startBeat + (barsInThisLine * 4) - 1;
+      for (let b = startBeat; b <= endB; b++) if (b < totalBeats()) seq.push(b);
+      
+      if (state.repeats && state.repeats[currentLine] !== undefined && !repeated.has(currentLine)) {
+          repeated.add(currentLine); 
+          let target = parseInt(state.repeats[currentLine], 10);
+          if (target >= startSectionLine && target <= currentLine) { currentLine = target; continue; }
+      }
+      currentLine++;
+  }
+  return seq;
+}
+
 function playSection(startLine) {
   if (state.isPlaying) stopPlayback(true); unlockAudio(); const ctx = ac(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
@@ -1803,25 +1990,7 @@ function playSection(startLine) {
       }
   }
 
-  const seq = [];
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
-  let currentLine = startLine;
-  const repeated = new Set();
-  const MAX_STEPS = (endLine - startLine + 1) * 4; let steps = 0;
-
-  while (currentLine <= endLine && steps++ < MAX_STEPS) {
-      const startBeat = (currentLine - 1) * beatsPerLine;
-      const endB = startBeat + beatsPerLine - 1;
-      for (let b = startBeat; b <= endB; b++) if (b < totalBeats()) seq.push(b);
-      
-      if (state.repeats && state.repeats[currentLine] !== undefined && !repeated.has(currentLine)) {
-          repeated.add(currentLine); 
-          let target = parseInt(state.repeats[currentLine], 10);
-          if (target >= startLine && target <= currentLine) { currentLine = target; continue; }
-      }
-      currentLine++;
-  }
-
+  const seq = buildSequenceForRange(startLine, endLine);
   if (seq.length === 0) return;
 
   state.playMode = 'section'; state.selectionHands = ['right', 'left'];
@@ -1830,54 +1999,6 @@ function playSection(startLine) {
   playbackActiveMasters = []; playbackVisualTimers = [];
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
   scheduler();
-}
-
-function updatePlayRangeHints() {
-    if (sectionLineMap.length === 0) {
-        document.getElementById('prStartHint').textContent = ``;
-        document.getElementById('prEndHint').textContent = ``;
-        return;
-    }
-    const prStart = document.getElementById('prStart');
-    const prEnd = document.getElementById('prEnd');
-    
-    let sIdx = parseInt(prStart.value);
-    let eIdx = parseInt(prEnd.value);
-    
-    if (!isNaN(sIdx) && sIdx >= 1 && sIdx <= sectionLineMap.length) {
-        const sLine = sectionLineMap[sIdx - 1];
-        const sName = (state.sections && state.sections[sLine]) ? state.sections[sLine] : 'ไม่มีชื่อท่อน';
-        document.getElementById('prStartHint').textContent = `( ${sName} )`;
-    } else {
-        document.getElementById('prStartHint').textContent = ``;
-    }
-    
-    if (!isNaN(eIdx) && eIdx >= 1 && eIdx <= sectionLineMap.length) {
-        const eLine = sectionLineMap[eIdx - 1];
-        const eName = (state.sections && state.sections[eLine]) ? state.sections[eLine] : 'ไม่มีชื่อท่อน';
-        document.getElementById('prEndHint').textContent = `( ${eName} )`;
-    } else {
-        document.getElementById('prEndHint').textContent = ``;
-    }
-}
-
-function clampPlayRangeValues() {
-    if (sectionLineMap.length === 0) return;
-    const prStart = document.getElementById('prStart');
-    const prEnd = document.getElementById('prEnd');
-    
-    let sIdx = parseInt(prStart.value) || 1;
-    let eIdx = parseInt(prEnd.value) || sectionLineMap.length;
-    
-    if (sIdx < 1) sIdx = 1;
-    if (sIdx > sectionLineMap.length) sIdx = sectionLineMap.length;
-    
-    if (eIdx < sIdx) eIdx = sIdx;
-    if (eIdx > sectionLineMap.length) eIdx = sectionLineMap.length;
-    
-    prStart.value = sIdx;
-    prEnd.value = eIdx;
-    updatePlayRangeHints();
 }
 
 function openPlayRangeModal(startLineNum) {
@@ -1889,29 +2010,23 @@ function openPlayRangeModal(startLineNum) {
         return;
     }
 
-    const prStart = document.getElementById('prStart');
-    const prEnd = document.getElementById('prEnd');
+    const startSelect = document.getElementById('prStartSel');
+    const endSelect = document.getElementById('prEndSel');
+    startSelect.innerHTML = '';
+    endSelect.innerHTML = '';
     
-    prStart.max = sectionLineMap.length;
-    prEnd.max = sectionLineMap.length;
-    
+    sectionLineMap.forEach((lineNum, idx) => {
+        const secName = (state.sections && state.sections[lineNum]) ? state.sections[lineNum] : `ท่อนที่ ${idx+1}`;
+        startSelect.add(new Option(secName, idx + 1));
+        endSelect.add(new Option(secName, idx + 1));
+    });
+
     let startIndex = sectionLineMap.indexOf(startLineNum);
     if (startIndex === -1) startIndex = 0;
     
-    prStart.value = startIndex + 1;
-    prEnd.value = sectionLineMap.length;
+    startSelect.value = startIndex + 1;
+    endSelect.value = sectionLineMap.length;
     
-    prStart.removeEventListener('input', updatePlayRangeHints);
-    prStart.addEventListener('input', updatePlayRangeHints);
-    prStart.removeEventListener('change', clampPlayRangeValues);
-    prStart.addEventListener('change', clampPlayRangeValues);
-    
-    prEnd.removeEventListener('input', updatePlayRangeHints);
-    prEnd.addEventListener('input', updatePlayRangeHints);
-    prEnd.removeEventListener('change', clampPlayRangeValues);
-    prEnd.addEventListener('change', clampPlayRangeValues);
-    
-    clampPlayRangeValues();
     document.getElementById('playRangeModal').classList.add('show');
 }
 
@@ -1928,25 +2043,7 @@ function playSectionRange(startSectionLine, endSectionLine) {
       }
   }
 
-  const seq = [];
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
-  let currentLine = startSectionLine;
-  const repeated = new Set();
-  const MAX_STEPS = (absoluteEndLine - startSectionLine + 1) * 4; let steps = 0;
-
-  while (currentLine <= absoluteEndLine && steps++ < MAX_STEPS) {
-      const startBeat = (currentLine - 1) * beatsPerLine;
-      const endB = startBeat + beatsPerLine - 1;
-      for (let b = startBeat; b <= endB; b++) if (b < totalBeats()) seq.push(b);
-      
-      if (state.repeats && state.repeats[currentLine] !== undefined && !repeated.has(currentLine)) {
-          repeated.add(currentLine); 
-          let target = parseInt(state.repeats[currentLine], 10);
-          if (target >= startSectionLine && target <= currentLine) { currentLine = target; continue; }
-      }
-      currentLine++;
-  }
-
+  const seq = buildSequenceForRange(startSectionLine, absoluteEndLine);
   if (seq.length === 0) return;
 
   state.playMode = 'section'; state.selectionHands = ['right', 'left'];
@@ -1967,9 +2064,9 @@ function playLine(lineNum) {
   unlockAudio(); const ctx = ac(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
-  const startBeat = (lineNum - 1) * beatsPerLine;
-  const endBeat = startBeat + beatsPerLine - 1;
+  const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
+  const startBeat = (lineNum - 1) * 32;
+  const endBeat = startBeat + (barsInThisLine * 4) - 1;
   
   const seq = [];
   for (let b = startBeat; b <= endBeat; b++) {
@@ -2051,9 +2148,12 @@ function scheduleBeat(step, time) {
       activeCells.forEach(c => c.classList.add('current-beat'));
 
       if (activeCells.length > 0) {
-         const rect = activeCells[0].getBoundingClientRect();
-         if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
-             activeCells[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+         const autoScroll = document.getElementById('autoScrollToggle');
+         if (!autoScroll || autoScroll.checked) {
+             const rect = activeCells[0].getBoundingClientRect();
+             if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
+                 activeCells[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+             }
          }
       }
   }, msUi));
@@ -2080,7 +2180,7 @@ function stopPlayback(cutAudio = false) {
 }
 
 let isExporting = false;
-async function exportMP3() {
+async function exportMP3(customSeq = null, suffix = '') {
   if (isExporting) return;
   if (countNotes('left') === 0 && countNotes('right') === 0) { return showToast('ไม่มีโน้ตที่จะส่งออก', 'error'); }
   if (typeof window.lamejs === 'undefined') { return showToast('ระบบโหลดไลบรารีไม่สำเร็จ', 'error'); }
@@ -2090,7 +2190,9 @@ async function exportMP3() {
   btn.textContent = 'กำลังแปลง...'; btn.disabled = true;
 
   try {
-    const beatDur = 60 / state.bpm; const seq = getPlaybackSequence(); const duration = seq.length * beatDur + 2.0; const sampleRate = 44100;
+    const beatDur = 60 / state.bpm; const seq = customSeq || getPlaybackSequence(); 
+    if (seq.length === 0) throw new Error("ไม่พบช่วงโน้ตที่จะเล่น");
+    const duration = seq.length * beatDur + 2.0; const sampleRate = 44100;
     const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     if (!OfflineCtx) throw new Error("ไม่รองรับ OfflineAudioContext");
     
@@ -2122,7 +2224,7 @@ async function exportMP3() {
     const finalBuf = mp3encoder.flush(); if (finalBuf.length > 0) mp3Data.push(finalBuf);
 
     const safeName = getSafeFilename(state.songName); const blob = new Blob(mp3Data, { type: 'audio/mp3' }); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `${safeName}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.mp3`;
+    const a = document.createElement('a'); a.href = url; a.download = `${safeName}${suffix}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.mp3`;
     a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); showToast('ดาวน์โหลด MP3 สำเร็จ!', 'success');
   } catch (err) { showToast('เกิดข้อผิดพลาดในการ Export MP3: ' + err.message, 'error'); } 
   finally { btn.textContent = originalText; btn.disabled = false; isExporting = false; }
@@ -2132,7 +2234,7 @@ function exportNotation() {
   if (chordTimer) { clearTimeout(chordTimer); commitChord(); }
   const data = { 
     type: 'khong-wong-yai-notation', version: 4, songName: state.songName, tempo: state.bpm, 
-    vak: state.numBars / BARS_PER_VAK, repeats: state.repeats || {}, sections: state.sections || {},
+    vak: state.numBars / BARS_PER_VAK, repeats: state.repeats || {}, sections: state.sections || {}, lineLengths: state.lineLengths || {},
     notes: { right: [...state.notes.right], left: [...state.notes.left] } 
   };
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -2162,13 +2264,14 @@ function exportText() {
         output += `\n--- ${state.sections[lineNum]} ---\n`;
     }
     const displayLineNum = lineNum - currentSectionStartLine + 1;
-    const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
+    const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : BARS_PER_VAK;
+    const beatsPerLine = barsInThisLine * BEATS_PER_BAR;
     
     output += `[บรรทัดที่ ${displayLineNum}]\n`;
     let rightLine = "";
     let leftLine = "";
     for (let b = 0; b < beatsPerLine; b++) {
-      const globalBeat = v * beatsPerLine + b;
+      const globalBeat = v * 32 + b; // Array keeps 32 limit internally
       const rn = state.notes.right[globalBeat];
       const ln = state.notes.left[globalBeat];
       
@@ -2323,10 +2426,11 @@ function applyTextImport(text) {
   state.notes.left.fill(null);
   for (let i = 0; i < rightNotes.length; i++) state.notes.right[i] = rightNotes[i];
   for (let i = 0; i < leftNotes.length; i++)  state.notes.left[i]  = leftNotes[i];
+  state.lineLengths = {};
 
   state.cursorBeat = 0;
   if (chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-  updateCounts(); updateCursorStatus(); renderNotation();
+  updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
 
   const modeLabel = (allGroupsHaveTwoLines || (isSingleGroup && singleGroupEven && !allGroupsHaveOneLine))
     ? `แบ่งมือ ${groups.length || Math.ceil(groups[0].length/2)} วรรค`
@@ -2347,14 +2451,16 @@ function applyImport(data, silent = false) {
   
   state.repeats = data.repeats || {};
   state.sections = data.sections || {};
+  state.lineLengths = data.lineLengths || {};
   state._editingSection = null;
+  state.selectedLine = null;
   
   if (data.notes) {
     state.notes.right = Array.isArray(data.notes.right) ? data.notes.right.slice() : [];
     state.notes.left = Array.isArray(data.notes.left) ? data.notes.left.slice() : [];
   }
   
-  state.cursorBeat = 0; ensureCapacity(); updateCounts(); updateCursorStatus(); renderNotation();
+  state.cursorBeat = 0; ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
 }
 
 function appendNewVak() {
@@ -2363,7 +2469,7 @@ function appendNewVak() {
   const currentVak = state.numBars / BARS_PER_VAK;
   state.numBars += BARS_PER_VAK; document.getElementById('numVak').value = currentVak + 1;
   ensureCapacity(); state.cursorBeat = currentVak * BARS_PER_VAK * BEATS_PER_BAR;
-  updateCounts(); updateCursorStatus(); renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
+  updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
   requestAnimationFrame(() => {
     const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
     if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
@@ -2377,7 +2483,7 @@ function buildSaveData() {
   if (chordTimer) { clearTimeout(chordTimer); commitChord(); }
   return {
     type: 'khong-wong-yai-notation', version: 4, songName: state.songName, tempo: state.bpm, vak: state.numBars / BARS_PER_VAK,
-    repeats: state.repeats || {}, sections: state.sections || {}, notes: { right: [...state.notes.right], left: [...state.notes.left] }, savedAt: new Date().toISOString()
+    repeats: state.repeats || {}, sections: state.sections || {}, lineLengths: state.lineLengths || {}, notes: { right: [...state.notes.right], left: [...state.notes.left] }, savedAt: new Date().toISOString()
   };
 }
 
@@ -2508,7 +2614,7 @@ function initTouchKeyboard() {
 }
 
 function init() {
-  ensureCapacity(); renderGongs(); renderNotation(); updateCounts(); updateCursorStatus(); updateHandSwitcher(); initTouchKeyboard(); initSaveSystem();
+  ensureCapacity(); renderGongs(); renderNotation(); updateCounts(); updateSectionStats(); updateCursorStatus(); updateHandSwitcher(); initTouchKeyboard(); initSaveSystem();
   updatePageTitle(); 
   updateUndoUI(); 
 
@@ -2521,7 +2627,7 @@ function init() {
     state.bpm = Math.max(30, Math.min(300, +e.target.value || 200)); 
   });
   
-  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); updateCounts(); updateCursorStatus(); renderNotation(); });
+  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); });
 
   const recTog = document.getElementById('recordToggle');
   recTog.addEventListener('click', () => { state.isRecording = !state.isRecording; recTog.classList.toggle('on', state.isRecording); renderNotation(); });
@@ -2545,8 +2651,10 @@ function init() {
     document.getElementById('clearConfirmModal').classList.remove('show');
     pushUndo(); 
     state.notes.right.fill(null); state.notes.left.fill(null); 
+    state.lineLengths = {};
     state.cursorBeat = 0; state.currentBeat = -1; 
-    updateCounts(); updateCursorStatus(); renderNotation(); 
+    state.selectedLine = null;
+    updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation(); 
     showToast('ล้างตารางเรียบร้อย');
   });
 
@@ -2556,8 +2664,8 @@ function init() {
   document.getElementById('confirmPlayRangeBtn').addEventListener('click', () => {
     document.getElementById('playRangeModal').classList.remove('show');
     
-    let sIdx = parseInt(document.getElementById('prStart').value) || 1;
-    let eIdx = parseInt(document.getElementById('prEnd').value) || sectionLineMap.length;
+    let sIdx = parseInt(document.getElementById('prStartSel').value) || 1;
+    let eIdx = parseInt(document.getElementById('prEndSel').value) || sectionLineMap.length;
     
     if (sIdx < 1) sIdx = 1;
     if (sIdx > sectionLineMap.length) sIdx = sectionLineMap.length;
@@ -2583,16 +2691,147 @@ function init() {
     }
   });
 
-  document.getElementById('exportMenuMp3').addEventListener('click', () => { exportMenu.classList.remove('show'); exportMP3(); });
+  // Export MP3 Modal Logic
+  document.getElementById('exportMenuMp3').addEventListener('click', () => { 
+      exportMenu.classList.remove('show'); 
+      sectionLineMap = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
+      if (!sectionLineMap.includes(1)) sectionLineMap.unshift(1); 
+      
+      const startSelect = document.getElementById('exMp3StartSel');
+      const endSelect = document.getElementById('exMp3EndSel');
+      startSelect.innerHTML = '';
+      endSelect.innerHTML = '';
+      
+      if (sectionLineMap.length === 0) {
+          const opt1 = new Option('ท่อนที่ 1', '1');
+          const opt2 = new Option('ท่อนที่ 1', '1');
+          startSelect.add(opt1); endSelect.add(opt2);
+      } else {
+          sectionLineMap.forEach((lineNum, idx) => {
+              const secName = (state.sections && state.sections[lineNum]) ? state.sections[lineNum] : `ท่อนที่ ${idx+1}`;
+              startSelect.add(new Option(secName, idx + 1));
+              endSelect.add(new Option(secName, idx + 1));
+          });
+      }
+      
+      endSelect.value = sectionLineMap.length > 0 ? sectionLineMap.length : 1;
+      
+      document.getElementById('exportMp3Modal').classList.add('show');
+  });
+
+  document.getElementById('confirmExportMp3Btn').addEventListener('click', () => {
+      document.getElementById('exportMp3Modal').classList.remove('show');
+      let sIdx = parseInt(document.getElementById('exMp3StartSel').value) || 1;
+      let eIdx = parseInt(document.getElementById('exMp3EndSel').value) || sectionLineMap.length;
+      if (sIdx < 1) sIdx = 1;
+      if (eIdx < sIdx) eIdx = sIdx;
+      
+      if (sectionLineMap.length > 0) {
+          const exportSeq = buildSequenceForRange(sectionLineMap[sIdx - 1], sectionLineMap[eIdx - 1]);
+          
+          let sName = (state.sections && state.sections[sectionLineMap[sIdx - 1]]) ? state.sections[sectionLineMap[sIdx - 1]] : `Part${sIdx}`;
+          let eName = (state.sections && state.sections[sectionLineMap[eIdx - 1]]) ? state.sections[sectionLineMap[eIdx - 1]] : `Part${eIdx}`;
+          sName = sName.replace(/[\/\\?%*:|"<> ]/g, ''); 
+          eName = eName.replace(/[\/\\?%*:|"<> ]/g, '');
+          
+          let suffix = '';
+          if (sIdx === eIdx) {
+              suffix = `_(${sName})`;
+          } else {
+              suffix = `_(${sName}_ถึง_${eName})`;
+          }
+          
+          exportMP3(exportSeq, suffix);
+      } else {
+          exportMP3(); 
+      }
+  });
+
+  document.getElementById('exportMp3FullBtn').addEventListener('click', () => {
+      document.getElementById('exportMp3Modal').classList.remove('show');
+      exportMP3();
+  });
+
   document.getElementById('exportMenuJson').addEventListener('click', () => { exportMenu.classList.remove('show'); exportNotation(); });
   document.getElementById('exportMenuTxt').addEventListener('click', () => { exportMenu.classList.remove('show'); exportText(); });
   document.getElementById('exportMenuPdf').addEventListener('click', () => { exportMenu.classList.remove('show'); exportPDF(); });
 
   document.getElementById('importBtn').addEventListener('click', executeImport);
 
+  // Cell Action Menu
   document.getElementById('camPlay')?.addEventListener('click', (e) => { e.preventDefault(); playCurrentRoom(); });
   document.getElementById('camCopy')?.addEventListener('click', (e) => { e.preventDefault(); copyRoom(); });
   document.getElementById('camPaste')?.addEventListener('click', (e) => { e.preventDefault(); pasteRoom(); });
+  
+  document.getElementById('camIncBar')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.cursorBeat !== -1) {
+          const bar = Math.floor(state.cursorBeat / 4);
+          const lineNum = Math.floor(bar / 8) + 1;
+          const currentLen = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
+          if (currentLen < 8) { 
+              pushUndo(); 
+              state.lineLengths[lineNum] = currentLen + 1; 
+              renderNotation(); 
+          }
+          hideCellMenus();
+      }
+  });
+  
+  document.getElementById('camDecBar')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.cursorBeat !== -1) {
+          const bar = Math.floor(state.cursorBeat / 4);
+          const lineNum = Math.floor(bar / 8) + 1;
+          const currentLen = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
+          if (currentLen > 1) { 
+              pushUndo(); 
+              state.lineLengths[lineNum] = currentLen - 1; 
+              renderNotation(); 
+          }
+          hideCellMenus();
+      }
+  });
+  
+  // Line Action Menu (New)
+  document.getElementById('lamCopy')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.selectedLine !== null) {
+          const lineIndex = state.selectedLine - 1;
+          const startB = lineIndex * 32; 
+          const copiedLength = 32;
+          const data = { right: state.notes.right.slice(startB, startB + copiedLength), left: state.notes.left.slice(startB, startB + copiedLength) };
+          customClipboard = { type: 'line', data, length: copiedLength, originalHand: 'both' };
+          showToast(`คัดลอกบรรทัดที่ ${state.selectedLine} เรียบร้อย`, 'success');
+          state.selectedLine = null;
+          renderNotation();
+          hideCellMenus();
+      }
+  });
+  
+  document.getElementById('lamPaste')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (state.selectedLine !== null && customClipboard && customClipboard.type === 'line') {
+          pushUndo(); 
+          const lineIndex = state.selectedLine - 1;
+          const startB = lineIndex * 32;
+          for (let i = 0; i < customClipboard.length; i++) {
+              state.notes.right[startB + i] = customClipboard.data.right[i];
+              state.notes.left[startB + i] = customClipboard.data.left[i];
+          }
+          showToast(`วางลงในบรรทัดที่ ${state.selectedLine} เรียบร้อย`, 'success');
+          state.selectedLine = null;
+          renderNotation();
+          hideCellMenus();
+      }
+  });
+  
+  document.getElementById('lamCancel')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      state.selectedLine = null;
+      renderNotation();
+      hideCellMenus();
+  });
   
   document.getElementById('camEdit')?.addEventListener('click', (e) => { 
       e.preventDefault(); 
@@ -2616,7 +2855,7 @@ function init() {
       state.selectedRooms.add(`left:${activeBar}`);
       renderNotation();
       document.getElementById('multiSelectActionMenu').classList.remove('hidden');
-      document.getElementById('msmPaste').disabled = !customClipboard;
+      document.getElementById('msmPaste').disabled = !customClipboard || customClipboard.type === 'line';
   });
   
   document.getElementById('msmCopy')?.addEventListener('click', (e) => { e.preventDefault(); copyMultiRooms(); });
@@ -2660,6 +2899,8 @@ function init() {
   notationDiv.addEventListener('click', (e) => { 
     const cell = e.target.closest('.beat-cell'); 
     if (!cell) return;
+
+    state.selectedLine = null; // Clear line selection if tapping a cell
 
     const beat = parseInt(cell.dataset.beat); 
     const hand = cell.dataset.hand;
@@ -2710,21 +2951,36 @@ function init() {
           e.target.closest('.controls') ||
           e.target.closest('.line-play-btn') ||
           e.target.closest('.section-header') ||
+          e.target.closest('.hand-label.clickable') ||
           e.target.closest('.line-action-bar')) {
           return;
       }
+      
+      let needsRender = false;
+
       if (state.isMultiSelectMode) {
           state.isMultiSelectMode = false;
           if(state.selectedRooms) state.selectedRooms.clear();
           document.getElementById('multiSelectActionMenu')?.classList.add('hidden');
-          renderNotation();
-      } else if (state.cursorBeat !== -1) {
+          needsRender = true;
+      } 
+      
+      if (state.cursorBeat !== -1) {
           state.cursorBeat = -1;
           state.isEditMode = false;
           hideCellMenus();
-          renderNotation();
           updateCursorStatus();
+          needsRender = true;
       }
+      
+      if (state.selectedLine !== null) {
+          state.selectedLine = null;
+          hideCellMenus();
+          needsRender = true;
+      }
+      
+      if (needsRender) renderNotation();
+      
   }, { passive: true });
 
   const buildImeInfographic = () => {
@@ -2809,7 +3065,6 @@ function exportPDF() {
   }
 
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  const beatsPerLine = BARS_PER_VAK * BEATS_PER_BAR;
   const songTitle = (state.songName && state.songName.trim()) ? state.songName.trim() : 'ไม่มีชื่อเพลง';
 
   let contentHTML = '';
@@ -2822,15 +3077,26 @@ function exportPDF() {
       contentHTML += `<div class="section-label">${secName}</div>`;
     }
 
+    const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
+    const beatsInThisLine = barsInThisLine * 4;
+
     let topCells = '', botCells = '';
-    for (let b = 0; b < beatsPerLine; b++) {
-      const globalBeat = line * beatsPerLine + b;
-      const rn = state.notes.right[globalBeat];
-      const ln = state.notes.left[globalBeat];
+    // สร้างตาราง 32 จังหวะ (8 ห้อง) เสมอ เพื่อตรึงความกว้างของหน้ากระดาษ
+    for (let b = 0; b < 32; b++) {
       const isBarEnd = (b + 1) % 4 === 0;
       const barEndClass = isBarEnd ? ' bar-end' : '';
-      topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
-      botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
+      
+      if (b < beatsInThisLine) {
+          const globalBeat = line * 32 + b;
+          const rn = state.notes.right[globalBeat];
+          const ln = state.notes.left[globalBeat];
+          topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
+          botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
+      } else {
+          // ถ้าห้องถูกลบ ให้แสดงช่องว่างแทนที่จะขยายตาราง
+          topCells += `<td class="nc${barEndClass} empty-cell"></td>`;
+          botCells += `<td class="nc${barEndClass} empty-cell"></td>`;
+      }
     }
 
     const hasRepeat = state.repeats && state.repeats[lineNum] !== undefined;
@@ -2930,6 +3196,10 @@ function exportPDF() {
   .top-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; }
   .bot-row td { border-bottom: 1px solid #000; }
   td.nc.bar-end { border-right: 1px solid #000; }
+  
+  /* เส้นจางๆ สำหรับห้องว่างที่ถูกลบ */
+  td.nc.empty-cell { background-color: #fafafa; border-top-color: #eee; border-bottom-color: #eee; }
+  td.nc.empty-cell.bar-end { border-right-color: #eee; }
 
   .note, .rest {
     display: inline-block;
@@ -3227,6 +3497,7 @@ const PDF_IMPORT = (() => {
 
     state.sections = {};
     state.repeats  = {};
+    state.lineLengths = {};
     state._editingSection = null;
 
     ensureCapacity();
@@ -3246,7 +3517,7 @@ const PDF_IMPORT = (() => {
 
     state.cursorBeat = 0;
     if (typeof chordTimer !== 'undefined' && chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-    updateCounts(); updateCursorStatus(); renderNotation();
+    updateCounts(); updateSectionStats(); updateCursorStatus(); renderNotation();
 
     const secCount = Object.keys(state.sections).length;
     const repCount = Object.keys(state.repeats).length;
