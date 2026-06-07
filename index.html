@@ -820,24 +820,59 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <!-- Modal สำหรับ เลือกช่วงท่อน Export MP3 -->
 <div class="modal-overlay" id="exportMp3Modal">
   <div class="modal-content" style="max-width: 450px;">
-    <h3 class="modal-title">🎵 ส่งออก MP3 (เลือกท่อน)</h3>
-    <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
-       <div style="display:flex; flex-direction:column; gap:6px;">
-         <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มตั้งแต่ท่อน:</label>
-         <select id="exMp3StartSel" class="mp3-select"></select>
-       </div>
-       <div style="display:flex; flex-direction:column; gap:6px;">
-         <label style="font-size:12px; font-weight:600; color:var(--muted);">จนถึงสิ้นสุดท่อนที่:</label>
-         <select id="exMp3EndSel" class="mp3-select"></select>
-       </div>
-    </div>
-    <div class="modal-actions" style="justify-content: space-between;">
-      <button class="btn" id="exportMp3FullBtn">ส่งออกทั้งหมด</button>
-      <div style="display: flex; gap: 12px;">
-        <button class="btn" onclick="document.getElementById('exportMp3Modal').classList.remove('show')">ยกเลิก</button>
-        <button class="btn export-btn" id="confirmExportMp3Btn">⬇ สร้างไฟล์ MP3</button>
+    <h3 class="modal-title">🎵 ส่งออก MP3</h3>
+
+    <!-- ส่วนเลือกท่อน -->
+    <div id="exMp3SelectArea" style="display:flex; flex-direction:column; gap:16px;">
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px; padding:0;">
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12px; font-weight:600; color:var(--muted);">เริ่มตั้งแต่ท่อน:</label>
+          <select id="exMp3StartSel" class="mp3-select"></select>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label style="font-size:12px; font-weight:600; color:var(--muted);">จนถึงสิ้นสุดท่อนที่:</label>
+          <select id="exMp3EndSel" class="mp3-select"></select>
+        </div>
+      </div>
+      <div class="modal-actions" style="justify-content: space-between; padding:0;">
+        <button class="btn" id="exportMp3FullBtn">ส่งออกทั้งหมด</button>
+        <div style="display: flex; gap: 12px;">
+          <button class="btn" id="cancelExportMp3Btn">ยกเลิก</button>
+          <button class="btn export-btn" id="confirmExportMp3Btn">⬇ สร้างไฟล์ MP3</button>
+        </div>
       </div>
     </div>
+
+    <!-- ส่วน Progress (ซ่อนไว้ก่อน) -->
+    <div id="exMp3ProgressArea" style="display:none; flex-direction:column; gap:12px;">
+
+      <!-- ข้อมูลเพลง -->
+      <div style="display:flex; justify-content:space-between; background:var(--panel-3); border-radius:8px; padding:10px 14px;">
+        <div style="text-align:center; flex:1;">
+          <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; margin-bottom:3px;">ความยาวเพลง</div>
+          <div style="font-size:16px; font-weight:700; color:var(--gold); font-family:'SF Mono',monospace;" id="exMp3SongDuration">—</div>
+        </div>
+        <div style="width:1px; background:var(--border); margin:0 8px;"></div>
+        <div style="text-align:center; flex:1;">
+          <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; margin-bottom:3px;">เวลาที่ผ่านไป</div>
+          <div style="font-size:16px; font-weight:700; color:var(--text); font-family:'SF Mono',monospace;" id="exMp3Elapsed">0:00</div>
+        </div>
+      </div>
+
+      <!-- สถานะ -->
+      <div style="text-align:center; font-size:13px; color:var(--text); font-weight:600;" id="exMp3StatusText">กำลังเตรียมข้อมูล...</div>
+
+      <!-- Progress bar -->
+      <div style="background:var(--panel-3); border-radius:8px; height:14px; overflow:hidden;">
+        <div id="exMp3ProgressBar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--purple),var(--accent)); border-radius:8px; transition:width 0.25s ease;"></div>
+      </div>
+
+      <!-- เปอร์เซ็น -->
+      <div style="text-align:center; font-size:26px; font-weight:700; color:var(--accent); font-family:'SF Mono',monospace;" id="exMp3PercentText">0%</div>
+
+      <div style="text-align:center; font-size:11px; color:var(--dim);">กรุณารอสักครู่ อย่าปิดหน้าต่างนี้</div>
+    </div>
+
   </div>
 </div>
 
@@ -1870,11 +1905,21 @@ function playSelectedRooms() {
   scheduler();
 }
 
-function buildSequenceForRange(startSectionLine, absoluteEndLine) {
+function buildSequenceForRange(startSectionLine, endSectionLine) {
+  // Expand endSectionLine to the actual last line of that section
+  const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
+  let absoluteEndLine = totalLines;
+  for (let l = endSectionLine + 1; l <= totalLines; l++) {
+      if (state.sections && state.sections[l] !== undefined) {
+          absoluteEndLine = l - 1;
+          break;
+      }
+  }
+
   const seq = [];
   let currentLine = startSectionLine;
   const repeated = new Set();
-  const MAX_STEPS = (absoluteEndLine - startSectionLine + 1) * 4; let steps = 0;
+  const MAX_STEPS = (absoluteEndLine - startSectionLine + 1) * 8; let steps = 0;
 
   while (currentLine <= absoluteEndLine && steps++ < MAX_STEPS) {
       const barsInThisLine = state.lineLengths[currentLine] !== undefined ? state.lineLengths[currentLine] : BARS_PER_VAK;
@@ -1896,16 +1941,7 @@ function playSection(startLine) {
   if (state.isPlaying) stopPlayback(true); unlockAudio(); const ctx = ac(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
-  const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  let endLine = totalLines;
-  for (let l = startLine + 1; l <= totalLines; l++) {
-      if (state.sections && state.sections[l] !== undefined) {
-          endLine = l - 1;
-          break;
-      }
-  }
-
-  const seq = buildSequenceForRange(startLine, endLine);
+  const seq = buildSequenceForRange(startLine, startLine);
   if (seq.length === 0) return;
 
   state.playMode = 'section'; state.selectionHands = ['right', 'left'];
@@ -1949,16 +1985,7 @@ function playSectionRange(startSectionLine, endSectionLine) {
   if (state.isPlaying) stopPlayback(true); unlockAudio(); const ctx = ac(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
-  const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  let absoluteEndLine = totalLines;
-  for (let l = endSectionLine + 1; l <= totalLines; l++) {
-      if (state.sections && state.sections[l] !== undefined) {
-          absoluteEndLine = l - 1;
-          break;
-      }
-  }
-
-  const seq = buildSequenceForRange(startSectionLine, absoluteEndLine);
+  const seq = buildSequenceForRange(startSectionLine, endSectionLine);
   if (seq.length === 0) return;
 
   state.playMode = 'section'; state.selectionHands = ['right', 'left'];
@@ -2094,25 +2121,105 @@ function stopPlayback(cutAudio = false) {
 }
 
 let isExporting = false;
-async function exportMP3(customSeq = null, suffix = '') {
-  if (isExporting) return;
-  if (countNotes('left') === 0 && countNotes('right') === 0) { return showToast('ไม่มีโน้ตที่จะส่งออก', 'error'); }
-  if (typeof window.lamejs === 'undefined') { return showToast('ระบบโหลดไลบรารีไม่สำเร็จ', 'error'); }
 
-  isExporting = true; const btn = document.getElementById('exportMainBtn');
-  const originalText = btn.textContent;
-  btn.textContent = 'เตรียมข้อมูล...'; btn.disabled = true;
+// โหลด lamejs แบบ dynamic ถ้ายังไม่โหลด
+function ensureLamejs() {
+  return new Promise((resolve, reject) => {
+    if (typeof window.lamejs !== 'undefined') { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js';
+    s.onload = () => {
+      if (typeof window.lamejs !== 'undefined') resolve();
+      else reject(new Error('โหลด lame.min.js สำเร็จแต่ไม่พบ window.lamejs'));
+    };
+    s.onerror = () => reject(new Error('โหลด lame.min.js ไม่สำเร็จ — ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต'));
+    document.head.appendChild(s);
+  });
+}
+
+function fmtSec(s) {
+  const m = Math.floor(s / 60), sec = Math.round(s % 60);
+  return `${m}:${String(sec).padStart(2,'0')}`;
+}
+
+function setExportProgress(pct, statusText) {
+  const bar   = document.getElementById('exMp3ProgressBar');
+  const pctEl = document.getElementById('exMp3PercentText');
+  const txt   = document.getElementById('exMp3StatusText');
+  if (bar)   bar.style.width   = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (txt)   txt.textContent   = statusText;
+}
+
+let _exportStartTime = 0;
+let _elapsedTimer = null;
+let _exportCancelled = false;
+
+function startExportTimer(songDurationSec) {
+  _exportStartTime = Date.now();
+  const durEl = document.getElementById('exMp3SongDuration');
+  const elEl  = document.getElementById('exMp3Elapsed');
+  if (durEl) durEl.textContent = fmtSec(songDurationSec);
+  _elapsedTimer = setInterval(() => {
+    const elapsed = (Date.now() - _exportStartTime) / 1000;
+    if (elEl) elEl.textContent = fmtSec(elapsed);
+  }, 500);
+}
+
+function stopExportTimer() {
+  if (_elapsedTimer) { clearInterval(_elapsedTimer); _elapsedTimer = null; }
+}
+
+function showExportProgress() {
+  const selArea  = document.getElementById('exMp3SelectArea');
+  const progArea = document.getElementById('exMp3ProgressArea');
+  if (selArea)  selArea.style.display  = 'none';
+  if (progArea) progArea.style.display = 'flex';
+  setExportProgress(0, 'กำลังเตรียมข้อมูล...');
+  const elEl  = document.getElementById('exMp3Elapsed');
+  const durEl = document.getElementById('exMp3SongDuration');
+  if (elEl)  elEl.textContent  = '0:00';
+  if (durEl) durEl.textContent = '—';
+}
+
+function hideExportProgress() {
+  const selArea  = document.getElementById('exMp3SelectArea');
+  const progArea = document.getElementById('exMp3ProgressArea');
+  if (selArea)  selArea.style.display  = '';
+  if (progArea) progArea.style.display = 'none';
+  document.getElementById('exportMp3Modal').classList.remove('show');
+}
+
+async function exportMP3(customSeq = null, suffix = '') {
+  if (isExporting) { showToast('กำลังสร้างไฟล์ MP3 อยู่ กรุณารอสักครู่...', 'error'); return; }
+  if (!state.notes.right.some(n => n !== null) && !state.notes.left.some(n => n !== null)) {
+    hideExportProgress();
+    return showToast('ไม่มีโน้ตที่จะส่งออก', 'error');
+  }
+
+  isExporting = true;
+  showExportProgress();
 
   try {
-    const beatDur = 60 / state.bpm; const seq = customSeq || getPlaybackSequence(); 
-    if (seq.length === 0) throw new Error("ไม่พบช่วงโน้ตที่จะเล่น");
-    const duration = seq.length * beatDur + 2.0; const sampleRate = 44100;
+    setExportProgress(2, 'โหลดไลบรารีเสียง...');
+    await ensureLamejs();
+
+    const beatDur = 60 / state.bpm;
+    const seq = customSeq || getPlaybackSequence();
+    if (seq.length === 0) throw new Error('ไม่พบช่วงโน้ตที่จะเล่น');
+
+    const tailSec = Math.max(3.5, beatDur * 4);
+    const songDurationSec = seq.length * beatDur;
+    startExportTimer(songDurationSec);
+
+    setExportProgress(8, 'กำลัง render เสียง...');
+    await new Promise(r => setTimeout(r, 30));
+
+    const duration = seq.length * beatDur + tailSec;
+    const sampleRate = 44100;
     const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtx) throw new Error("ไม่รองรับ OfflineAudioContext");
-    
-    btn.textContent = 'ประมวลผลเสียง...';
-    await new Promise(r => setTimeout(r, 50)); 
-    
+    if (!OfflineCtx) throw new Error('เบราว์เซอร์ไม่รองรับ OfflineAudioContext');
+
     const renderLength = Math.ceil(sampleRate * duration);
     const offlineCtx = new OfflineCtx(2, renderLength, sampleRate);
 
@@ -2124,16 +2231,37 @@ async function exportMP3(customSeq = null, suffix = '') {
       }
     }
 
-    const renderedBuffer = await offlineCtx.startRendering();
-    btn.textContent = 'แปลงไฟล์ (0%)...';
-    await new Promise(r => setTimeout(r, 50)); 
+    setExportProgress(15, 'กำลัง render เสียง (อาจใช้เวลาสักครู่)...');
+
+    // จำลอง progress ระหว่าง render (15%→38%) เพื่อไม่ให้ดูค้าง
+    let renderPct = 15;
+    const renderTimer = setInterval(() => {
+      if (renderPct < 38) {
+        renderPct += 1;
+        setExportProgress(renderPct, `กำลัง render เสียง... ${renderPct}%`);
+      }
+    }, 300);
+
+    let renderedBuffer;
+    try {
+      renderedBuffer = await offlineCtx.startRendering();
+    } finally {
+      clearInterval(renderTimer);
+    }
+
+    setExportProgress(40, 'แปลงเป็น MP3...');
+    await new Promise(r => setTimeout(r, 30));
 
     const mp3encoder = new window.lamejs.Mp3Encoder(2, renderedBuffer.sampleRate, 128);
-    const mp3Data = []; const left = renderedBuffer.getChannelData(0); const right = renderedBuffer.getChannelData(1);
-    const sampleBlockSize = 1152; const leftInt16 = new Int16Array(left.length); const rightInt16 = new Int16Array(right.length);
-    
+    const mp3Data = [];
+    const left   = renderedBuffer.getChannelData(0);
+    const right   = renderedBuffer.getChannelData(1);
+    const sampleBlockSize = 1152;
+    const leftInt16  = new Int16Array(left.length);
+    const rightInt16 = new Int16Array(right.length);
+
     for (let i = 0; i < left.length; i++) {
-      leftInt16[i] = left[i] < 0 ? left[i] * 32768 : left[i] * 32767;
+      leftInt16[i]  = left[i]  < 0 ? left[i]  * 32768 : left[i]  * 32767;
       rightInt16[i] = right[i] < 0 ? right[i] * 32768 : right[i] * 32767;
     }
 
@@ -2141,24 +2269,49 @@ async function exportMP3(customSeq = null, suffix = '') {
     for (let i = 0; i < left.length; i += CHUNK_SIZE) {
       const end = Math.min(i + CHUNK_SIZE, left.length);
       for (let j = i; j < end; j += sampleBlockSize) {
-          const mp3buf = mp3encoder.encodeBuffer(
-              leftInt16.subarray(j, j + sampleBlockSize), 
-              rightInt16.subarray(j, j + sampleBlockSize)
-          );
-          if (mp3buf.length > 0) mp3Data.push(mp3buf);
+        const mp3buf = mp3encoder.encodeBuffer(
+          leftInt16.subarray(j, j + sampleBlockSize),
+          rightInt16.subarray(j, j + sampleBlockSize)
+        );
+        if (mp3buf.length > 0) mp3Data.push(mp3buf);
       }
-      const progress = Math.round((end / left.length) * 100);
-      btn.textContent = `แปลงไฟล์ (${progress}%)...`;
-      await new Promise(r => setTimeout(r, 10)); // Yield to main thread
+      // 40%–95% = ช่วงแปลง MP3
+      const progress = 40 + Math.round((end / left.length) * 55);
+      setExportProgress(progress, `แปลงเป็น MP3... ${Math.round((end / left.length) * 100)}%`);
+      await new Promise(r => setTimeout(r, 0));
     }
-    
-    const finalBuf = mp3encoder.flush(); if (finalBuf.length > 0) mp3Data.push(finalBuf);
 
-    const safeName = getSafeFilename(state.songName); const blob = new Blob(mp3Data, { type: 'audio/mp3' }); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `${safeName}${suffix}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.mp3`;
-    a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); showToast('ดาวน์โหลด MP3 สำเร็จ!', 'success');
-  } catch (err) { showToast('เกิดข้อผิดพลาดในการ Export MP3: ' + err.message, 'error'); } 
-  finally { btn.textContent = originalText; btn.disabled = false; isExporting = false; }
+    const finalBuf = mp3encoder.flush();
+    if (finalBuf.length > 0) mp3Data.push(finalBuf);
+    if (mp3Data.length === 0) throw new Error('ไม่มีข้อมูลเสียงที่จะบันทึก');
+
+    setExportProgress(97, 'กำลังดาวน์โหลด...');
+    await new Promise(r => setTimeout(r, 50));
+
+    const safeName = getSafeFilename(state.songName) || 'KhongWong';
+    const fileName = `${safeName}${suffix}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.mp3`;
+    const blob = new Blob(mp3Data, { type: 'audio/mpeg' });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+
+    setExportProgress(100, '✓ ดาวน์โหลดสำเร็จ!');
+    await new Promise(r => setTimeout(r, 900));
+    showToast('ดาวน์โหลด MP3 สำเร็จ!', 'success');
+
+  } catch (err) {
+    showToast('Export MP3 ล้มเหลว: ' + err.message, 'error');
+  } finally {
+    stopExportTimer();
+    isExporting = false;
+    hideExportProgress();
+  }
 }
 
 function exportNotation() {
@@ -2671,17 +2824,20 @@ function init() {
   });
 
   document.getElementById('confirmExportMp3Btn').addEventListener('click', () => {
-      document.getElementById('exportMp3Modal').classList.remove('show');
       let sIdx = parseInt(document.getElementById('exMp3StartSel').value) || 1;
       let eIdx = parseInt(document.getElementById('exMp3EndSel').value) || sectionLineMap.length;
       if (sIdx < 1) sIdx = 1;
+      if (sIdx > sectionLineMap.length) sIdx = sectionLineMap.length;
       if (eIdx < sIdx) eIdx = sIdx;
+      if (eIdx > sectionLineMap.length) eIdx = sectionLineMap.length;
       
       if (sectionLineMap.length > 0) {
-          const exportSeq = buildSequenceForRange(sectionLineMap[sIdx - 1], sectionLineMap[eIdx - 1]);
+          const startLine = sectionLineMap[sIdx - 1];
+          const endLine   = sectionLineMap[eIdx - 1];
+          const exportSeq = buildSequenceForRange(startLine, endLine);
           
-          let sName = (state.sections && state.sections[sectionLineMap[sIdx - 1]]) ? state.sections[sectionLineMap[sIdx - 1]] : `Part${sIdx}`;
-          let eName = (state.sections && state.sections[sectionLineMap[eIdx - 1]]) ? state.sections[sectionLineMap[eIdx - 1]] : `Part${eIdx}`;
+          let sName = (state.sections && state.sections[startLine]) ? state.sections[startLine] : `Part${sIdx}`;
+          let eName = (state.sections && state.sections[endLine])   ? state.sections[endLine]   : `Part${eIdx}`;
           sName = sName.replace(/[\/\\?%*:|"<> ]/g, ''); 
           eName = eName.replace(/[\/\\?%*:|"<> ]/g, '');
           
@@ -2698,8 +2854,11 @@ function init() {
       }
   });
 
+  document.getElementById('cancelExportMp3Btn').addEventListener('click', () => {
+      if (!isExporting) document.getElementById('exportMp3Modal').classList.remove('show');
+  });
+
   document.getElementById('exportMp3FullBtn').addEventListener('click', () => {
-      document.getElementById('exportMp3Modal').classList.remove('show');
       exportMP3();
   });
 
