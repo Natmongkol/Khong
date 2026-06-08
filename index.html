@@ -3739,9 +3739,9 @@ function init() {
         else if (scr.mozUnlockOrientation) scr.mozUnlockOrientation();
       } catch(_) {}
 
-      const gongStage = document.getElementById('gong-stage');
+      _teardownPracticeGongs();
 
-      // คืน style กอง stage ให้เหมือนเดิม
+      const gongStage = document.getElementById('gong-stage');
       gongStage.style.width      = '';
       gongStage.style.height     = '';
       gongStage.style.maxWidth   = '';
@@ -3749,10 +3749,6 @@ function init() {
       gongStage.style.aspectRatio = '';
       gongStage.style.position   = '';
       gongStage.style.inset      = '';
-      gongStage.onpointerdown = null;
-      gongStage.onpointermove = null;
-      gongStage.onpointerup   = null;
-      gongStage.onpointercancel = null;
 
       origContainer.appendChild(gongStage);
       overlay.style.display = 'none';
@@ -3773,36 +3769,58 @@ function init() {
       stage._practiceMode = true;
       _activePointers.clear();
 
-      stage.onpointerdown = (e) => {
-        const gongEl = e.target.closest('.gong');
-        if (!gongEl) return;
-        e.preventDefault();
-        stage.setPointerCapture(e.pointerId);
+      // ติด listener บนลูกฆ้องแต่ละลูกโดยตรง (ไม่ใช้ delegation + setPointerCapture บน stage)
+      // เพื่อหลีกเลี่ยงปัญหา pointer ติดค้างบน Safari/iOS
+      stage.querySelectorAll('.gong').forEach(gongEl => {
         const idx = parseInt(gongEl.dataset.idx);
-        _activePointers.set(e.pointerId, idx);
-        unlockAudio();
-        playGong(idx);
-        flashGong(idx);
-      };
 
-      stage.onpointermove = (e) => {
-        if (!_activePointers.has(e.pointerId)) return;
-        const el = document.elementFromPoint(e.clientX, e.clientY);
-        const gongEl = el ? el.closest('.gong') : null;
-        if (!gongEl) return;
-        const newIdx = parseInt(gongEl.dataset.idx);
-        const prevIdx = _activePointers.get(e.pointerId);
-        if (newIdx !== prevIdx) {
-          _activePointers.set(e.pointerId, newIdx);
-          playGong(newIdx);
-          flashGong(newIdx);
-        }
-      };
+        gongEl.onpointerdown = (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          gongEl.setPointerCapture(e.pointerId); // capture ที่ลูก ไม่ใช่ stage
+          _activePointers.set(e.pointerId, idx);
+          unlockAudio();
+          playGong(idx);
+          flashGong(idx);
+        };
 
-      stage.onpointerup = stage.onpointercancel = (e) => {
-        _activePointers.delete(e.pointerId);
-        try { stage.releasePointerCapture(e.pointerId); } catch(_) {}
-      };
+        gongEl.onpointermove = (e) => {
+          if (!_activePointers.has(e.pointerId)) return;
+          // ตรวจว่า pointer ย้ายไปลูกอื่นด้วย elementFromPoint
+          const el = document.elementFromPoint(e.clientX, e.clientY);
+          const targetGong = el ? el.closest('.gong') : null;
+          if (!targetGong) return;
+          const newIdx = parseInt(targetGong.dataset.idx);
+          const prevIdx = _activePointers.get(e.pointerId);
+          if (newIdx !== prevIdx) {
+            // release capture จากลูกเดิม แล้ว capture ลูกใหม่
+            try { gongEl.releasePointerCapture(e.pointerId); } catch(_) {}
+            try { targetGong.setPointerCapture(e.pointerId); } catch(_) {}
+            _activePointers.set(e.pointerId, newIdx);
+            playGong(newIdx);
+            flashGong(newIdx);
+          }
+        };
+
+        gongEl.onpointerup = gongEl.onpointercancel = (e) => {
+          _activePointers.delete(e.pointerId);
+          try { gongEl.releasePointerCapture(e.pointerId); } catch(_) {}
+        };
+      });
+    }
+
+    function _teardownPracticeGongs() {
+      const stage = document.getElementById('gong-stage');
+      if (!stage) return;
+      stage.style.touchAction = '';
+      stage._practiceMode = false;
+      stage.querySelectorAll('.gong').forEach(gongEl => {
+        gongEl.onpointerdown  = null;
+        gongEl.onpointermove  = null;
+        gongEl.onpointerup    = null;
+        gongEl.onpointercancel = null;
+      });
+      _activePointers.clear();
     }
 
     openBtn.addEventListener('click', openPractice);
