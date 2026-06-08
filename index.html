@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -928,12 +929,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
         <!-- Stage: วงฆ้อง (ใช้รวมกันทั้งวงใหญ่และมอญวงใหญ่ โดยปรับรูปร่างอัตโนมัติ) -->
         <div class="gong-stage" id="gong-stage"></div>
     </div>
-    <!-- ปุ่มโหมดซ้อมเล่น: ขวาล่างใต้วงฆ้อง -->
-    <div style="display:flex; justify-content:flex-end; margin-top:12px;">
-      <button class="btn" id="practiceModeBtn" style="background: rgba(63,223,142,0.1); border-color: var(--green); color: var(--green); font-weight: bold; border-radius: 20px; padding: 6px 16px;">
-        <span style="font-size: 16px; vertical-align: middle;">🥁</span> โหมดซ้อมเล่น
-      </button>
-    </div>
   </section>
 
   <div class="section-spacer"></div>
@@ -1255,41 +1250,6 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
       <button class="btn" id="cancelPdfImportBtn">ยกเลิก</button>
       <button class="btn primary" id="confirmPdfImportBtn" disabled>✓ นำเข้าโน้ต</button>
     </div>
-  </div>
-</div>
-
-<!-- โหมดซ้อมเล่น (Practice Overlay) -->
-<div id="practiceOverlay" style="
-  display:none; position:fixed; inset:0; z-index:200;
-  background: var(--bg);
-  touch-action: none;
-  user-select: none; -webkit-user-select: none;
-  overflow:hidden;
-">
-  <!--
-    #practiceInner: กล่องที่จะถูก rotate เมื่ออยู่ในแนวตั้ง
-    ขนาดจะถูกกำหนดด้วย JS ให้พอดีกับหน้าจอในแนวนอนเสมอ
-  -->
-  <div id="practiceInner" style="
-    position:absolute;
-    display:flex; align-items:center; justify-content:center;
-    background: var(--bg);
-    transform-origin: center center;
-  ">
-    <!-- ปุ่มกลับลอยมุมบนซ้าย (ของ inner) -->
-    <button id="practiceBackBtn" style="
-      position:absolute; top:14px; left:14px; z-index:10;
-      background: rgba(63,223,142,0.12); border:1px solid rgba(63,223,142,0.4);
-      color:var(--green); font-size:14px; font-weight:700;
-      cursor:pointer; display:flex; align-items:center; gap:8px;
-      font-family:inherit; padding:8px 18px; border-radius:20px; transition:0.2s;
-      touch-action: manipulation;
-    ">🔙 กลับ</button>
-    <!-- วงฆ้องจะถูก append เข้ามาที่นี่ -->
-    <div id="practiceBody" style="
-      position:absolute; inset:0;
-      display:flex; align-items:center; justify-content:center;
-    "></div>
   </div>
 </div>
 
@@ -1721,16 +1681,8 @@ function renderGongs() {
     const range = inst.getNoteRange(i);
     noteLabel.innerHTML = `<span class="nn nn-${range}">${inst.base[i]}</span>`;
     gong.appendChild(noteLabel);
-    // ใช้ touchstart สำหรับ touch device (ไม่ preventDefault เพื่อไม่ให้ iOS ติดค้าง)
-    // ใช้ mousedown สำหรับ mouse (desktop)
-    gong.addEventListener('touchstart', (e) => {
-      e.stopPropagation();
-      unlockAudio(); triggerGong(i);
-    }, { passive: true });
-    gong.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      unlockAudio(); triggerGong(i);
-    });
+    const interact = (e) => { e.preventDefault(); unlockAudio(); triggerGong(i); };
+    gong.addEventListener('pointerdown', interact);
     stage.appendChild(gong);
   }
   layoutGongs();
@@ -3649,214 +3601,6 @@ function init() {
       
       setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 50);
   });
-
-  // ===== โหมดซ้อมเล่น (Practice Mode) =====
-  (function() {
-    const overlay       = document.getElementById('practiceOverlay');
-    const inner         = document.getElementById('practiceInner');
-    const body          = document.getElementById('practiceBody');
-    const backBtn       = document.getElementById('practiceBackBtn');
-    const openBtn       = document.getElementById('practiceModeBtn');
-    const origContainer = document.getElementById('gongStageContainer');
-
-    // --- ป้องกัน scroll/zoom ขณะอยู่ในโหมดซ้อมเล่น ---
-    function blockScroll(e) { e.preventDefault(); }
-
-    // --- คำนวณ layout: บังคับ landscape ด้วย CSS rotate ---
-    function applyLandscapeLayout() {
-      const sw = window.screen.width  || window.innerWidth;
-      const sh = window.screen.height || window.innerHeight;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const isPortrait = vh > vw;
-
-      if (isPortrait) {
-        // หมุน 90° — inner กว้าง=vh, สูง=vw (landscape จริง)
-        const W = vh;
-        const H = vw;
-        inner.style.width  = W + 'px';
-        inner.style.height = H + 'px';
-        inner.style.left   = ((vw - W) / 2) + 'px';
-        inner.style.top    = ((vh - H) / 2) + 'px';
-        inner.style.transform = 'rotate(90deg)';
-      } else {
-        // landscape อยู่แล้ว — ไม่ต้องหมุน
-        inner.style.width  = vw + 'px';
-        inner.style.height = vh + 'px';
-        inner.style.left   = '0px';
-        inner.style.top    = '0px';
-        inner.style.transform = 'none';
-      }
-
-      // gong-stage เต็ม inner
-      const gongStage = document.getElementById('gong-stage');
-      if (gongStage) {
-        gongStage.style.width      = '100%';
-        gongStage.style.height     = '100%';
-        gongStage.style.maxWidth   = '100%';
-        gongStage.style.maxHeight  = '100%';
-        gongStage.style.aspectRatio = 'unset';
-        gongStage.style.position   = 'absolute';
-        gongStage.style.inset      = '0';
-      }
-
-      setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 30);
-    }
-
-    function openPractice() {
-      if (state.isPlaying) stopPlayback(true);
-
-      // ย้าย gong stage เข้า practiceBody
-      const gongStage = document.getElementById('gong-stage');
-      body.appendChild(gongStage);
-
-      overlay.style.display = 'block';
-
-      // ล็อก scroll/zoom
-      document.body.style.overflow = 'hidden';
-      document.addEventListener('touchmove', blockScroll, { passive: false });
-
-      // พยายาม lock orientation ด้วย API ก่อน (ถ้ารองรับ)
-      try {
-        const scr = window.screen;
-        if (scr.orientation && scr.orientation.lock) {
-          scr.orientation.lock('landscape').catch(() => {});
-        } else if (scr.lockOrientation) {
-          scr.lockOrientation('landscape');
-        } else if (scr.mozLockOrientation) {
-          scr.mozLockOrientation('landscape');
-        }
-      } catch(_) {}
-
-      applyLandscapeLayout();
-      _setupPracticeGongs();
-
-      window.addEventListener('resize',             applyLandscapeLayout);
-      window.addEventListener('orientationchange',  applyLandscapeLayout);
-    }
-
-    function closePractice() {
-      window.removeEventListener('resize',            applyLandscapeLayout);
-      window.removeEventListener('orientationchange', applyLandscapeLayout);
-
-      // unlock orientation
-      try {
-        const scr = window.screen;
-        if (scr.orientation && scr.orientation.unlock) scr.orientation.unlock();
-        else if (scr.unlockOrientation) scr.unlockOrientation();
-        else if (scr.mozUnlockOrientation) scr.mozUnlockOrientation();
-      } catch(_) {}
-
-      _teardownPracticeGongs();
-
-      const gongStage = document.getElementById('gong-stage');
-      gongStage.style.width      = '';
-      gongStage.style.height     = '';
-      gongStage.style.maxWidth   = '';
-      gongStage.style.maxHeight  = '';
-      gongStage.style.aspectRatio = '';
-      gongStage.style.position   = '';
-      gongStage.style.inset      = '';
-
-      origContainer.appendChild(gongStage);
-      overlay.style.display = 'none';
-      inner.style.transform = 'none';
-
-      document.body.style.overflow = '';
-      document.removeEventListener('touchmove', blockScroll);
-
-      setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 50);
-    }
-
-    // ติดตาม pointer ที่กด-ค้างบนลูกฆ้องแต่ละลูก
-    const _activePointers = new Map();
-
-    function _setupPracticeGongs() {
-      const stage = document.getElementById('gong-stage');
-      stage.style.touchAction = 'none';
-      stage._practiceMode = true;
-      _activePointers.clear();
-
-      // ใช้ touch events แทน Pointer API — รองรับ multi-touch บน iOS/iPadOS ได้ดีกว่า
-      // และไม่มีปัญหา setPointerCapture ติดค้าง
-      stage._practiceHandleTouchStart = (e) => {
-        e.preventDefault(); // ป้องกัน scroll เฉพาะใน practice mode
-        unlockAudio();
-        for (const touch of e.changedTouches) {
-          const el = document.elementFromPoint(touch.clientX, touch.clientY);
-          const gongEl = el ? el.closest('.gong') : null;
-          if (!gongEl) continue;
-          const idx = parseInt(gongEl.dataset.idx);
-          _activePointers.set(touch.identifier, idx);
-          playGong(idx);
-          flashGong(idx);
-        }
-      };
-
-      stage._practiceHandleTouchMove = (e) => {
-        e.preventDefault();
-        for (const touch of e.changedTouches) {
-          const el = document.elementFromPoint(touch.clientX, touch.clientY);
-          const gongEl = el ? el.closest('.gong') : null;
-          if (!gongEl) continue;
-          const newIdx = parseInt(gongEl.dataset.idx);
-          const prevIdx = _activePointers.get(touch.identifier);
-          if (newIdx !== prevIdx) {
-            _activePointers.set(touch.identifier, newIdx);
-            playGong(newIdx);
-            flashGong(newIdx);
-          }
-        }
-      };
-
-      stage._practiceHandleTouchEnd = (e) => {
-        for (const touch of e.changedTouches) {
-          _activePointers.delete(touch.identifier);
-        }
-      };
-
-      // mouse support (desktop)
-      stage._practiceHandleMouseDown = (e) => {
-        const gongEl = e.target.closest('.gong');
-        if (!gongEl) return;
-        unlockAudio();
-        playGong(parseInt(gongEl.dataset.idx));
-        flashGong(parseInt(gongEl.dataset.idx));
-      };
-
-      stage.addEventListener('touchstart',  stage._practiceHandleTouchStart,  { passive: false });
-      stage.addEventListener('touchmove',   stage._practiceHandleTouchMove,   { passive: false });
-      stage.addEventListener('touchend',    stage._practiceHandleTouchEnd,    { passive: true  });
-      stage.addEventListener('touchcancel', stage._practiceHandleTouchEnd,    { passive: true  });
-      stage.addEventListener('mousedown',   stage._practiceHandleMouseDown);
-    }
-
-    function _teardownPracticeGongs() {
-      const stage = document.getElementById('gong-stage');
-      if (!stage) return;
-      stage.style.touchAction = '';
-      stage._practiceMode = false;
-      if (stage._practiceHandleTouchStart) {
-        stage.removeEventListener('touchstart',  stage._practiceHandleTouchStart);
-        stage.removeEventListener('touchmove',   stage._practiceHandleTouchMove);
-        stage.removeEventListener('touchend',    stage._practiceHandleTouchEnd);
-        stage.removeEventListener('touchcancel', stage._practiceHandleTouchEnd);
-        stage.removeEventListener('mousedown',   stage._practiceHandleMouseDown);
-        stage._practiceHandleTouchStart = null;
-        stage._practiceHandleTouchMove  = null;
-        stage._practiceHandleTouchEnd   = null;
-        stage._practiceHandleMouseDown  = null;
-      }
-      _activePointers.clear();
-    }
-
-    openBtn.addEventListener('click', openPractice);
-    backBtn.addEventListener('click', closePractice);
-
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay.style.display !== 'none') closePractice();
-    });
-  })();
 
   document.getElementById('fcPlayPause').addEventListener('click', () => {
     if (state.isPlaying) {
