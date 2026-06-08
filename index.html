@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -6,8 +7,6 @@
 <meta name="theme-color" content="#0a0e1a">
 <title>โน้ตดนตรีไทย ทำนองหลัก</title>
 
-<!-- ไลบรารีสำหรับสร้าง MP3 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lamejs/1.2.1/lame.min.js"></script>
 
 <style>
 :root {
@@ -214,6 +213,8 @@ section.panel h3 {
   box-shadow: 0 4px 12px rgba(0,0,0,0.45), inset 0 -3px 5px rgba(0,0,0,0.4), inset 0 2px 3px rgba(255,200,120,0.2);
   cursor: pointer; transform: translate(-50%, -50%);
   transition: transform 0.08s, box-shadow 0.15s;
+  will-change: transform;
+  contain: layout style;
 }
 .gong::after {
   content: ''; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -310,6 +311,7 @@ section.panel h3 {
 }
 .beat-cell {
   font-size: clamp(11px, 3.2vw, 14px); color: var(--text); padding: clamp(2px, 1vw, 4px) 0; border-radius: 4px; cursor: pointer; transition: background 0.1s;
+  contain: layout style;
 }
 @media (pointer: coarse) {
   .beat-cell { font-size: clamp(18px, 4.5vw, 24px); padding: clamp(8px, 2.5vw, 14px) 0; }
@@ -534,6 +536,8 @@ section.panel h3 {
 .tk-action.enter { border-color: var(--green);  color: var(--green);  }
 .tk-action.undo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
 .tk-action.redo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
+.tk-action.undo.disabled,
+.tk-action.redo.disabled  { border-color: var(--border); color: var(--dim); opacity: 0.45; cursor: not-allowed; pointer-events: none; }
 
 .tk-modifier-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 6px; }
 .tk-mod {
@@ -1248,7 +1252,10 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <div class="focus-overlay" id="focusOverlay">
   <div class="focus-header">
     <button class="focus-back-btn" id="focusBackBtn"><span>🔙</span> กลับ</button>
-    <div id="focusInstName" style="color:var(--gold); font-weight:bold; font-size: 17px; flex:1; text-align:center;">ฆ้องวงใหญ่</div>
+    <div style="flex:1; text-align:center; overflow:hidden;">
+      <div id="focusSongName" style="color:var(--text); font-weight:700; font-size:16px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; line-height:1.2;"></div>
+      <div id="focusInstName" style="color:var(--gold); font-weight:600; font-size:12px; opacity:0.85; margin-top:1px;">ฆ้องวงใหญ่</div>
+    </div>
     <div style="width: 90px;"></div>
   </div>
   <div class="focus-body" id="focusBody">
@@ -1347,7 +1354,6 @@ function switchInstrument(instId) {
     document.getElementById('kb-kmwy').style.display = (instId === 'kmwy') ? 'block' : 'none';
     
     updatePageTitle();
-    updateSectionStats();
     renderNotation();
     renderImeInfographic();
     renderGongs(); // วาดลูกฆ้องใหม่เสมอ ไม่ว่าจะเลือกวงใด
@@ -1555,7 +1561,7 @@ function restoreSnapshot(snap) {
   document.getElementById('multiSelectActionMenu')?.classList.add('hidden');
   hideCellMenus();
   
-  ensureCapacity(); updateSectionStats(); renderNotation();
+  ensureCapacity(); renderNotation();
 }
 
 function updateUndoUI() {
@@ -1563,6 +1569,10 @@ function updateUndoUI() {
   const redoBtn = document.getElementById('redoBtn');
   if (undoBtn) undoBtn.disabled = undoStack.length === 0;
   if (redoBtn) redoBtn.disabled = redoStack.length === 0;
+  const tkUndo = document.getElementById('tkUndoBtn');
+  const tkRedo = document.getElementById('tkRedoBtn');
+  if (tkUndo) tkUndo.classList.toggle('disabled', undoStack.length === 0);
+  if (tkRedo) tkRedo.classList.toggle('disabled', redoStack.length === 0);
 }
 
 let audioCtx = null; let audioUnlocked = false; let iosWarned = false;
@@ -1600,6 +1610,19 @@ function unlockAudio() {
 window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
 window.addEventListener('click', unlockAudio, { once: true });
 
+let _cachedNoiseBuf = null;
+let _cachedNoiseSR  = 0;   // sampleRate ที่ใช้สร้าง buffer — แยกออกมาเพราะ AudioBuffer.sampleRate เป็น read-only
+function _getNoiseBuf(ctx) {
+  // reuse ถ้า sampleRate ยังเหมือนกัน
+  const sr = ctx.sampleRate || 44100;
+  if (_cachedNoiseBuf && _cachedNoiseSR === sr) return _cachedNoiseBuf;
+  const bufLen = Math.floor(0.03 * sr);
+  const buf = ctx.createBuffer(1, bufLen, sr); const data = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+  _cachedNoiseBuf = buf; _cachedNoiseSR = sr;
+  return buf;
+}
+
 function playGongFreq(freq, when, gain = 1, customCtx = null) {
   try {
     const ctx = customCtx || ac(); if (!ctx) return null;
@@ -1624,10 +1647,7 @@ function playGongFreq(freq, when, gain = 1, customCtx = null) {
       osc.connect(env); env.connect(master); osc.start(t); osc.stop(t + decay + 0.05);
     });
 
-    const sr = ctx.sampleRate || 44100; const bufLen = Math.floor(0.03 * sr);
-    const buf = ctx.createBuffer(1, bufLen, sr); const data = buf.getChannelData(0);
-    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
-    
+    const buf = _getNoiseBuf(ctx);
     const noise = ctx.createBufferSource(); noise.buffer = buf;
     const noiseFilter = ctx.createBiquadFilter(); noiseFilter.type = 'bandpass'; noiseFilter.frequency.value = Math.min(3500, freq * 6); noiseFilter.Q.value = 1.4;
     const noiseEnv = ctx.createGain(); noiseEnv.gain.setValueAtTime(0.18, t); noiseEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
@@ -1661,6 +1681,7 @@ function renderGongs() {
     stage.appendChild(gong);
   }
   layoutGongs();
+  _rebuildGongCache();
 }
 
 function layoutGongs() {
@@ -1671,87 +1692,137 @@ function layoutGongs() {
   const inst = getActiveInst();
   const numGongs = inst.numGongs;
 
-  const labelGap = 8; const labelHalfBox = 13; const sideMargin = 10; const topMargin = 10; const bottomMargin = 12;
+  const labelGap = 8; const labelHalfBox = 13; const margin = 14;
   const padRadial = labelGap + labelHalfBox;
-  const gsFromH = (h - 1.695 * padRadial - 2 * labelHalfBox - topMargin - bottomMargin) / (1.695 * 4.01);
-  const gsFromW = (w - 1.976 * padRadial - 2 * labelHalfBox - 2 * sideMargin) / (1.976 * 4.01);
-  
-  let gongSize = Math.max(20, Math.min(80, Math.min(gsFromW, gsFromH)));
-  const R = 3.51 * gongSize; 
-  const labelCenterDist = gongSize / 2 + labelGap + labelHalfBox; 
-  const reachL = R + labelCenterDist;
-  const cx = w / 2; 
 
-  let cy;
-  if (currentInstrument === 'kwy') {
-      cy = topMargin + labelHalfBox + 0.988 * reachL;
-  } else {
-      cy = topMargin + labelHalfBox + 0.65 * reachL; // สำหรับมอญวงใหญ่ ให้ศูนย์กลางอยู่ด้านบนแล้วโค้งลง
-  }
+  // --- คำนวณ gongSize จาก bounding box จริงของวง ---
+  // ฆ้องวงใหญ่: วงโค้ง 270° (225° ถึง -45°) → bounding box ≈ 2R กว้าง, (R + reachL) สูง
+  // ฆ้องมอญวงใหญ่: วงโค้ง 252° (216° ถึง -36°) → คล้ายกัน
+  // reach = R + labelCenterDist = R + gongSize/2 + labelGap + labelHalfBox
+  //       = gongSize*(3.51 + 0.5) + padRadial = 4.01*gongSize + padRadial
+  // bounding:
+  //   kwy:  width  = 2*(4.01*gs + padRadial),  height = (4.01*gs + padRadial) * (1 + sin45°) ≈ 1.707*(4.01gs+pad)
+  //   kmwy: width  = 2*(4.01*gs + padRadial),  height = (4.01*gs + padRadial) * (1 + sin36°) ≈ 1.588*(4.01gs+pad)
+  const reach_k  = currentInstrument === 'kwy' ? (1 + Math.sin(45 * Math.PI/180)) : (1 + Math.sin(36 * Math.PI/180));
+  const avW = w - 2 * margin;
+  const avH = h - 2 * margin;
+  // solve: 2*(4.01*gs + pad) = avW  →  gs = (avW/2 - pad) / 4.01
+  const gsFromW = (avW / 2 - padRadial) / 4.01;
+  // solve: reach_k*(4.01*gs + pad) = avH  →  gs = (avH/reach_k - pad) / 4.01
+  const gsFromH = (avH / reach_k - padRadial) / 4.01;
+
+  let gongSize = Math.max(20, Math.min(80, Math.min(gsFromW, gsFromH)));
+  const R = 3.51 * gongSize;
+  const labelCenterDist = gongSize / 2 + labelGap + labelHalfBox;
+  const reachL = R + labelCenterDist; // reach จากจุดศูนย์กลางวงถึงขอบฉลาก
 
   stage.style.setProperty('--gong-size', gongSize + 'px');
 
+  // --- คำนวณตำแหน่ง gong ทั้งหมด โดย cx=0, cy=0 ก่อน แล้วค่อย offset ---
+  const positions = [];
   for (let i = 0; i < numGongs; i++) {
-    let angleRad;
-    let x, y, lx, ly;
-
+    let angleRad, x, y, lx, ly;
     if (currentInstrument === 'kwy') {
-        angleRad = (225 - i * (270 / (numGongs - 1))) * Math.PI / 180;
-        const cosA = Math.cos(angleRad); const sinA = Math.sin(angleRad);
-        x = cx + R * cosA;
-        y = cy - R * sinA;
-        lx = gongSize / 2 + labelCenterDist * cosA;
-        ly = gongSize / 2 - labelCenterDist * sinA;
+      angleRad = (225 - i * (270 / (numGongs - 1))) * Math.PI / 180;
+      const cosA = Math.cos(angleRad); const sinA = Math.sin(angleRad);
+      x  = R * cosA;
+      y  = -R * sinA;
+      lx = labelCenterDist * cosA;
+      ly = -labelCenterDist * sinA;
     } else {
-        // ฆ้องมอญวงใหญ่: โค้งรูปแบบ U ระยะห่าง 18 องศาต่อลูก (เท่าฆ้องวงใหญ่เป๊ะ)
-        // รวม 15 ลูก ใช้มุมกระจายตัวทั้งหมด 252 องศา (เริ่มจากซ้ายบนที่มุม 216 ไปขวาบนที่ -36)
-        angleRad = (216 - i * (252 / (numGongs - 1))) * Math.PI / 180;
-        const cosA = Math.cos(angleRad); const sinA = Math.sin(angleRad);
-        x = cx + R * cosA;
-        y = cy + R * sinA; // แกน Y บวกเพื่อโค้งลง
-        lx = gongSize / 2 + labelCenterDist * cosA;
-        ly = gongSize / 2 + labelCenterDist * sinA;
+      angleRad = (216 - i * (252 / (numGongs - 1))) * Math.PI / 180;
+      const cosA = Math.cos(angleRad); const sinA = Math.sin(angleRad);
+      x  = R * cosA;
+      y  = R * sinA;
+      lx = labelCenterDist * cosA;
+      ly = labelCenterDist * sinA;
     }
+    positions.push({ x, y, lx, ly });
+  }
 
+  // --- หา bounding box จริงของลูกฆ้อง + ฉลาก ---
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+  for (const p of positions) {
+    const reach = reachL + gongSize / 2;
+    minX = Math.min(minX, p.x - reach);
+    maxX = Math.max(maxX, p.x + reach);
+    minY = Math.min(minY, p.y - reach);
+    maxY = Math.max(maxY, p.y + reach);
+  }
+
+  // --- offset เพื่อให้วงอยู่กึ่งกลาง stage ---
+  const offsetX = w / 2 - (minX + maxX) / 2;
+  const offsetY = h / 2 - (minY + maxY) / 2;
+
+  // --- apply ตำแหน่ง ---
+  for (let i = 0; i < numGongs; i++) {
+    const { x, y, lx, ly } = positions[i];
     const gong = stage.querySelector(`.gong[data-idx="${i}"]`);
     if (!gong) continue;
-    
-    gong.style.left = x + 'px'; 
-    gong.style.top = y + 'px';
-    gong.style.transform = 'translate(-50%, -50%)'; // ป้องกันการเคลื่อนจากการใส่ค่าตรง
+
+    gong.style.left = (x + offsetX) + 'px';
+    gong.style.top  = (y + offsetY) + 'px';
+    gong.style.transform = 'translate(-50%, -50%)';
 
     const label = gong.querySelector('.note-label');
     if (label) {
-      label.style.left = lx + 'px';
-      label.style.top  = ly + 'px';
+      label.style.left = (gongSize / 2 + lx) + 'px';
+      label.style.top  = (gongSize / 2 + ly) + 'px';
       label.style.transform = 'translate(-50%, -50%)';
     }
   }
 }
 
 let resizeTimer;
-window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutGongs, 100); });
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutGongs, 120); });
+
+// debounced wrapper — ใช้กรณีไม่ต้องการ render ทันที (เช่น resize, scroll)
+let _renderTimer = null;
+function renderNotationDeferred() {
+  if (_renderTimer) return;
+  _renderTimer = requestAnimationFrame(() => { _renderTimer = null; renderNotation(); });
+}
+
+// --- cache สำหรับ flashGong ---
+const _gongEls = new Map();   // idx -> gong DOM element
+const _kbEls   = new Map();   // idx -> array of kb-note elements
+function _rebuildGongCache() {
+  _gongEls.clear(); _kbEls.clear();
+  document.querySelectorAll('.gong-stage .gong').forEach(el => {
+    _gongEls.set(parseInt(el.dataset.idx), el);
+  });
+  document.querySelectorAll(`.touch-keyboard #kb-${currentInstrument} .tk-note`).forEach(el => {
+    const i = parseInt(el.dataset.idx);
+    if (!_kbEls.has(i)) _kbEls.set(i, []);
+    _kbEls.get(i).push(el);
+  });
+}
 
 function flashGong(idx) {
-  const el = document.querySelector(`.gong-stage .gong[data-idx="${idx}"]`);
+  const el = _gongEls.get(idx) || document.querySelector(`.gong-stage .gong[data-idx="${idx}"]`);
   if (el) {
-      el.classList.remove('playing'); void el.offsetWidth; el.classList.add('playing');
-      setTimeout(() => el.classList.remove('playing'), 300);
+    // restart animation โดยไม่ force reflow: ยกเลิก animation เก่าแล้วใส่ class ใหม่
+    // หมายเหตุ: layoutGongs() set gong.style.transform เป็น inline style ซึ่ง override CSS animation
+    // keyframes ได้ → ต้อง clear inline transform ก่อน add class แล้วคืนค่าหลัง animation จบ
+    el.classList.remove('playing');
+    const savedTransform = el.style.transform;
+    requestAnimationFrame(() => {
+      el.style.transform = '';   // ให้ CSS animation keyframes ควบคุม transform ได้
+      el.classList.add('playing');
+      setTimeout(() => {
+        el.classList.remove('playing');
+        el.style.transform = savedTransform; // คืน inline transform หลัง animation จบ
+      }, 300);
+    });
   }
-  
-  // ทัชสกรีน/Keyboard
-  const kbBtns = document.querySelectorAll(`.tk-note[data-idx="${idx}"]`);
-  kbBtns.forEach(btn => {
-      // ตรวจสอบว่าปุ่มนั้นอยู่ในคีย์บอร์ดที่กำลังแสดงอยู่หรือไม่
-      if (btn.closest(`#kb-${currentInstrument}`)) {
-          btn.style.transform = 'scale(0.92)';
-          btn.style.background = 'var(--panel)';
-          setTimeout(() => {
-              btn.style.transform = '';
-              btn.style.background = '';
-          }, 150);
-      }
-  });
+  const btns = _kbEls.get(idx);
+  if (btns) {
+    btns.forEach(btn => {
+      btn.style.transform = 'scale(0.92)';
+      btn.style.background = 'var(--panel)';
+      setTimeout(() => { btn.style.transform = ''; btn.style.background = ''; }, 150);
+    });
+  }
 }
 
 function totalBeats() { return state.numBars * BEATS_PER_BAR; }
@@ -1850,7 +1921,7 @@ function commitChord() {
   if (left !== null) state.notes.left[state.cursorBeat] = left;
   if (right !== null) state.notes.right[state.cursorBeat] = right;
   
-  advanceCursor(); updateSectionStats(); renderNotation();
+  advanceCursor(); renderNotation();
 }
 
 function insertRest() {
@@ -1859,7 +1930,7 @@ function insertRest() {
   if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; chordBuffer = { left: null, right: null }; }
   pushUndo();
   state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
-  advanceCursor(); updateSectionStats(); renderNotation();
+  advanceCursor(); renderNotation();
 }
 
 function deleteAtCursor() {
@@ -1874,7 +1945,7 @@ function deleteAtCursor() {
     state.cursorBeat = beat - 1;
     state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
   }
-  updateSectionStats(); renderNotation();
+  renderNotation();
 }
 
 function moveCursorBy(delta) {
@@ -2016,7 +2087,6 @@ function deleteLine(lineIndex) {
     }
     state.sections = newSec; state.repeats = newRep; state.lineLengths = newLen;
     if (state.cursorBeat >= state.notes.right.length) state.cursorBeat = -1;
-    updateSectionStats();
     renderNotation();
     showToast('ลบบรรทัดเรียบร้อย', 'success');
 }
@@ -2049,7 +2119,6 @@ function insertLine(lineIndex) {
     }
     state.sections = newSec; state.repeats = newRep; state.lineLengths = newLen;
     if (state.cursorBeat >= insertAt) state.cursorBeat += 32;
-    updateSectionStats();
     renderNotation();
     showToast('แทรกบรรทัดใหม่แล้ว', 'success');
 }
@@ -2087,7 +2156,6 @@ function moveLineUp(lineIndex) {
     if (state.cursorBeat >= startAbove && state.cursorBeat < startAbove + 32) state.cursorBeat += 32;
     else if (state.cursorBeat >= startAbove + 32 && state.cursorBeat < startAbove + 64) state.cursorBeat -= 32;
 
-    updateSectionStats();
     renderNotation();
 }
 
@@ -2127,8 +2195,10 @@ function updateSectionStats() {
 }
 
 function renderNotation() {
+  updateSectionStats(); // ต้องเรียกก่อน render เพื่อ build sectionLineMap และ stats UI
   const root = document.getElementById('notation');
-  root.innerHTML = ''; const lines = Math.ceil(state.numBars / 8);
+  const frag = document.createDocumentFragment();
+  const lines = Math.ceil(state.numBars / 8);
   if (!state.sections) state.sections = {};
   if (!state.lineLengths) state.lineLengths = {};
   
@@ -2141,6 +2211,7 @@ function renderNotation() {
     
     const lineWrap = document.createElement('div'); 
     lineWrap.className = 'line-wrap';
+    lineWrap.dataset.lineNum = lineNum;
 
     if (state.sections[lineNum] !== undefined) {
          currentSectionStartLine = lineNum;
@@ -2176,17 +2247,17 @@ function renderNotation() {
     secHeader.addEventListener('click', (e) => {
         if (e.target.classList.contains('add-sec')) {
             state.sections[lineNum] = `ท่อนที่ ${Object.keys(state.sections).length + 1}`; 
-            state._editingSection = lineNum; updateSectionStats(); renderNotation();
+            state._editingSection = lineNum; renderNotation();
         }
         else if (e.target.classList.contains('edit-sec')) { state._editingSection = lineNum; renderNotation(); }
-        else if (e.target.classList.contains('del-sec')) { pushUndo(); delete state.sections[lineNum]; updateSectionStats(); renderNotation(); }
+        else if (e.target.classList.contains('del-sec')) { pushUndo(); delete state.sections[lineNum]; renderNotation(); }
         else if (e.target.classList.contains('cancel-sec')) { state._editingSection = null; renderNotation(); }
         else if (e.target.classList.contains('save-sec')) {
             const val = document.getElementById(`secInp-${lineNum}`).value.trim();
             pushUndo();
             if (val) state.sections[lineNum] = val; 
             else delete state.sections[lineNum];
-            state._editingSection = null; updateSectionStats(); renderNotation();
+            state._editingSection = null; renderNotation();
         }
         else if (e.target.classList.contains('play-sec')) { playSection(lineNum); }
         else if (e.target.classList.contains('play-range-sec')) { openPlayRangeModal(lineNum); }
@@ -2342,15 +2413,21 @@ function renderNotation() {
     rowsContainer.appendChild(repeatCtrl); 
     pair.appendChild(rowsContainer); 
     lineWrap.appendChild(pair);
-    root.appendChild(lineWrap);
+    frag.appendChild(lineWrap);
   }
+
+  // flush ทีเดียว — ลด reflow
+  root.innerHTML = '';
+  root.appendChild(frag);
 
   const tkRest = document.getElementById('tkRest');
   if (tkRest) {
     tkRest.textContent = '− หยุด'; tkRest.classList.add('rest'); tkRest.classList.remove('enter');
   }
   
-  updateSectionStats();
+  // rebuild lookup caches
+  _buildBeatCellMap();
+  _currentBeatCells = [];
 }
 
 function getPlaybackSequence() {
@@ -2570,6 +2647,7 @@ function startPlayback() {
   state.isPlaying = true; state.playMode = 'all';
   nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if(pBar) pBar.style.width = '0%';
   if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
   if (typeof window._focusSeekRebuild === 'function' && !isResume) window._focusSeekRebuild();
@@ -2591,6 +2669,19 @@ function scheduler() {
   else { playbackEndTimer = setTimeout(() => stopPlayback(), (nextNoteTime - ctx.currentTime + 0.5) * 1000); }
 }
 
+// --- lookup map: beat -> [cells] สร้างครั้งเดียวหลัง renderNotation ---
+let _beatCellMap = null;
+function _buildBeatCellMap() {
+  _beatCellMap = new Map();
+  document.querySelectorAll('.beat-cell[data-beat]').forEach(el => {
+    const b = parseInt(el.dataset.beat);
+    if (!_beatCellMap.has(b)) _beatCellMap.set(b, []);
+    _beatCellMap.get(b).push(el);
+  });
+}
+let _currentBeatCells = [];   // cells ที่ highlight อยู่ตอนนี้
+let _autoScrollLastLine = null; // บรรทัดล่าสุดที่ scroll ไป
+
 function scheduleBeat(step, time) {
   const beat = playbackSeq[step]; const ctx = ac();
   const handsToPlay = (state.playMode === 'selection' || state.playMode === 'section' || state.playMode === 'line') ? state.selectionHands : ['right', 'left'];
@@ -2608,17 +2699,23 @@ function scheduleBeat(step, time) {
       const pct = Math.round((step / Math.max(1, playbackSeq.length - 1)) * 100);
       const bar = document.getElementById('playbackBar'); if (bar) bar.style.width = pct + '%';
       if (typeof window._focusSeekUpdate === 'function') window._focusSeekUpdate(step);
-      
-      document.querySelectorAll('.beat-cell.current-beat').forEach(c => c.classList.remove('current-beat'));
-      const activeCells = document.querySelectorAll(`.beat-cell[data-beat="${beat}"]`);
-      activeCells.forEach(c => c.classList.add('current-beat'));
 
-      if (activeCells.length > 0) {
+      // ลบ highlight เก่า แบบ O(1) จาก cache
+      _currentBeatCells.forEach(c => c.classList.remove('current-beat'));
+      _currentBeatCells = (_beatCellMap && _beatCellMap.get(beat)) || [];
+      _currentBeatCells.forEach(c => c.classList.add('current-beat'));
+
+      if (_currentBeatCells.length > 0) {
          const autoScroll = document.getElementById('autoScrollToggle');
          if (!autoScroll || autoScroll.checked) {
-             const rect = activeCells[0].getBoundingClientRect();
-             if (rect.top < 100 || rect.bottom > window.innerHeight - 100) {
-                 activeCells[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+             // scroll ทั้งบรรทัด (line-wrap) ให้อยู่กลางจอ ทุกครั้งที่เปลี่ยนบรรทัด
+             const lineWrap = _currentBeatCells[0].closest('.line-wrap');
+             const scrollTarget = lineWrap || _currentBeatCells[0];
+             const prevLine = _autoScrollLastLine;
+             const thisLine = lineWrap ? lineWrap.dataset.lineNum : null;
+             if (thisLine !== prevLine) {
+               _autoScrollLastLine = thisLine;
+               scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
              }
          }
       }
@@ -2632,7 +2729,10 @@ function stopPlayback(cutAudio = false) {
   if (schedulerTimer) clearTimeout(schedulerTimer); if (playbackEndTimer) clearTimeout(playbackEndTimer);
   playbackVisualTimers.forEach(clearTimeout); playbackVisualTimers = [];
 
-  document.querySelectorAll('.beat-cell.current-beat').forEach(c => c.classList.remove('current-beat'));
+  // ใช้ cache แทน querySelectorAll
+  _currentBeatCells.forEach(c => c.classList.remove('current-beat'));
+  _currentBeatCells = [];
+  _autoScrollLastLine = null;
 
   if (cutAudio && audioCtx) {
     const now = audioCtx.currentTime;
@@ -3048,7 +3148,7 @@ function applyTextImport(text) {
 
   state.cursorBeat = 0;
   if (chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-  updateSectionStats(); renderNotation();
+  renderNotation();
 
   const modeLabel = (allGroupsHaveTwoLines || (isSingleGroup && singleGroupEven && !allGroupsHaveOneLine))
     ? `แบ่งมือ ${groups.length || Math.ceil(groups[0].length/2)} วรรค`
@@ -3092,7 +3192,7 @@ function applyImport(data, silent = false) {
     state.notes.left = Array.isArray(data.notes.left) ? data.notes.left.slice() : [];
   }
   
-  state.cursorBeat = 0; ensureCapacity(); updateSectionStats(); renderNotation();
+  state.cursorBeat = 0; ensureCapacity(); renderNotation();
 }
 
 function appendNewVak() {
@@ -3101,7 +3201,7 @@ function appendNewVak() {
   const currentVak = state.numBars / BARS_PER_VAK;
   state.numBars += BARS_PER_VAK; document.getElementById('numVak').value = currentVak + 1;
   ensureCapacity(); state.cursorBeat = currentVak * BARS_PER_VAK * BEATS_PER_BAR;
-  updateSectionStats(); renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
+  renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
   requestAnimationFrame(() => {
     const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
     if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
@@ -3293,7 +3393,7 @@ function renderImeInfographic() {
 }
 
 function init() {
-  ensureCapacity(); renderGongs(); renderNotation(); updateSectionStats(); initTouchKeyboard(); initSaveSystem();
+  ensureCapacity(); renderGongs(); renderNotation(); initTouchKeyboard(); initSaveSystem();
   updatePageTitle(); 
   updateUndoUI(); 
   renderImeInfographic();
@@ -3307,7 +3407,7 @@ function init() {
     state.bpm = Math.max(30, Math.min(300, +e.target.value || 200)); 
   });
   
-  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); updateSectionStats(); renderNotation(); });
+  document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); renderNotation(); });
 
   const recTog = document.getElementById('recordToggle');
   recTog.addEventListener('click', () => { state.isRecording = !state.isRecording; recTog.classList.toggle('on', state.isRecording); renderNotation(); });
@@ -3364,7 +3464,6 @@ function init() {
     state.currentBeat = -1;
     state.selectedLine = null;
     ensureCapacity();
-    updateSectionStats();
     renderNotation();
     showToast('ล้างตารางเรียบร้อย');
   });
@@ -3460,11 +3559,16 @@ function init() {
       
       focusBody.appendChild(gongStage);
       document.getElementById('focusInstName').textContent = getActiveInst().name;
+      const songNameEl = document.getElementById('focusSongName');
+      if (songNameEl) songNameEl.textContent = (state.songName && state.songName.trim()) ? state.songName.trim() : 'ไม่มีชื่อเพลง';
       
       overlay.classList.add('active');
       // รอ CSS transition เสร็จก่อน แล้วค่อย layout ใหม่
       setTimeout(() => {
         layoutGongs();
+        // rebuild cache หลัง move เสมอ — หาก renderGongs() ถูกเรียกขณะ stage
+        // อยู่ที่อื่น _gongEls จะ stale; เรียก rebuild ที่นี่การันตีว่า cache fresh
+        _rebuildGongCache();
         if (typeof window._focusSeekRebuild === 'function') window._focusSeekRebuild();
       }, 320);
   });
@@ -3477,7 +3581,7 @@ function init() {
       originalContainer.appendChild(gongStage);
       overlay.classList.remove('active');
       
-      setTimeout(layoutGongs, 50);
+      setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 50);
   });
 
   document.getElementById('fcPlayPause').addEventListener('click', () => {
@@ -4263,7 +4367,7 @@ function exportPDF() {
 </table>
 
 <div class="print-actions">
-   <button class="print-btn close" onclick="window.close()">❌ ปิดหน้าต่าง</button>
+   <button class="print-btn close" onclick="history.back()">← กลับ</button>
    <button class="print-btn" onclick="window.print()">🖨️ พิมพ์/Save</button>
 </div>
 
@@ -4271,14 +4375,24 @@ function exportPDF() {
 </html>`;
 
   try {
-      const w = window.open('', '_blank');
-      if (!w) { showToast('กรุณาอนุญาต Pop-up เพื่อเปิดหน้า PDF', 'error'); return; }
-      w.document.write(printHTML);
-      w.document.close();
-      w.document.title = songTitle; 
+      // iOS Safari บล็อก window.open('','_blank') + document.write() — ใช้ Blob URL แทน
+      // Blob URL เป็น URL จริง (ไม่ใช่ about:blank) จึงผ่าน popup blocker ได้
+      const blob = new Blob([printHTML], { type: 'text/html;charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+
+      // คืน memory หลังเปิด tab — หน้าใหม่โหลดเสร็จแล้วค่อย revoke
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
       showToast('เปิดหน้าตารางโน้ต PDF แล้ว', 'success');
   } catch(e) {
-      showToast('ไม่สามารถสร้างหน้าต่าง PDF ได้ในหน้าจอนี้', 'error');
+      showToast('ไม่สามารถสร้างหน้า PDF ได้ในหน้าจอนี้', 'error');
   }
 }
 
@@ -4536,7 +4650,7 @@ const PDF_IMPORT = (() => {
 
     state.cursorBeat = 0;
     if (typeof chordTimer !== 'undefined' && chordTimer) { clearTimeout(chordTimer); chordTimer = null; }
-    updateSectionStats(); renderNotation();
+    renderNotation();
 
     const secCount = Object.keys(state.sections).length;
     const repCount = Object.keys(state.repeats).length;
