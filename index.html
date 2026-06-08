@@ -2636,13 +2636,9 @@ function startPlayback() {
   if (state.isPlaying) return; unlockAudio(); const ctx = ac(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume().catch(() => {});
 
-  // ถ้ายังไม่มี seq (เล่นครั้งแรก) สร้างใหม่และเริ่มจากต้น
-  // ถ้ามี seq อยู่แล้ว (paused แล้ว resume) ให้เล่นต่อจาก currentStep ที่เลื่อนไว้
-  const isResume = playbackSeq && playbackSeq.length > 0;
-  if (!isResume) {
-    playbackSeq = getPlaybackSequence();
-    currentStep = 0;
-  }
+  // เริ่มจากต้นเสมอ (หยุดแล้วเล่นใหม่ทุกครั้ง)
+  playbackSeq = getPlaybackSequence();
+  currentStep = 0;
 
   state.isPlaying = true; state.playMode = 'all';
   nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
@@ -2650,7 +2646,7 @@ function startPlayback() {
   _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if(pBar) pBar.style.width = '0%';
   if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
-  if (typeof window._focusSeekRebuild === 'function' && !isResume) window._focusSeekRebuild();
+  if (typeof window._focusSeekRebuild === 'function') window._focusSeekRebuild();
   scheduler();
 }
 
@@ -2717,6 +2713,26 @@ function scheduleBeat(step, time) {
                _autoScrollLastLine = thisLine;
                scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
              }
+             // scroll แนวนอนให้ notation-wrapper ตามตำแหน่ง beat ที่เล่นอยู่ (สำคัญบนมือถือ)
+             const cell = _currentBeatCells[0];
+             const wrapper = cell.closest('.notation-wrapper');
+             if (wrapper) {
+               const barCell = cell.closest('.bar-cell');
+               const barRow  = cell.closest('.bar-row');
+               const rowsContainer = cell.closest('.bar-rows-container');
+               const cellLeft = (rowsContainer ? rowsContainer.offsetLeft : 0)
+                              + (barRow  ? barRow.offsetLeft  : 0)
+                              + (barCell ? barCell.offsetLeft : 0)
+                              + cell.offsetLeft;
+               const wrapScroll = wrapper.scrollLeft;
+               const wrapWidth  = wrapper.clientWidth;
+               const cellRight  = cellLeft + cell.offsetWidth;
+               if (cellRight > wrapScroll + wrapWidth - 16) {
+                 wrapper.scrollTo({ left: cellLeft - wrapWidth / 2 + cell.offsetWidth / 2, behavior: 'smooth' });
+               } else if (cellLeft < wrapScroll + 16) {
+                 wrapper.scrollTo({ left: cellLeft - wrapWidth / 2 + cell.offsetWidth / 2, behavior: 'smooth' });
+               }
+             }
          }
       }
   }, msUi));
@@ -2743,15 +2759,12 @@ function stopPlayback(cutAudio = false) {
   }
   playbackActiveMasters = [];
 
-  // เมื่อหยุดสนิท (เพลงจบเอง cutAudio=false) ให้ reset seq และ seekbar
-  // เมื่อผู้ใช้กด pause (cutAudio=true) คง currentStep ไว้เพื่อให้ seek และ resume ได้
-  if (!cutAudio) {
-    playbackSeq = [];
-    currentStep = 0;
-    state.playMode = 'all';
-    const bar = document.getElementById('playbackBar'); if (bar) bar.style.width = '0%';
-    if (typeof window._focusSeekUpdate === 'function') window._focusSeekUpdate(0);
-  }
+  // reset เสมอ — ไม่ว่าจะหยุดเองหรือผู้ใช้กดหยุด ให้กลับไปเริ่มต้นใหม่ทุกครั้ง
+  playbackSeq = [];
+  currentStep = 0;
+  state.playMode = 'all';
+  const bar = document.getElementById('playbackBar'); if (bar) bar.style.width = '0%';
+  if (typeof window._focusSeekUpdate === 'function') window._focusSeekUpdate(0);
 
   if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
 }
@@ -3586,9 +3599,37 @@ function init() {
 
   document.getElementById('fcPlayPause').addEventListener('click', () => {
     if (state.isPlaying) {
-      stopPlayback(true);
+      // โหมดรับชม: หยุดแบบ pause — คง currentStep ไว้เพื่อเล่นต่อ
+      if (schedulerTimer) clearTimeout(schedulerTimer);
+      if (playbackEndTimer) clearTimeout(playbackEndTimer);
+      playbackVisualTimers.forEach(clearTimeout); playbackVisualTimers = [];
+      _currentBeatCells.forEach(c => c.classList.remove('current-beat'));
+      _currentBeatCells = [];
+      _autoScrollLastLine = null;
+      if (audioCtx) {
+        const now = audioCtx.currentTime;
+        for (const master of playbackActiveMasters) {
+          if (!master || !master.gain) continue;
+          try { master.gain.cancelScheduledValues(now); master.gain.setValueAtTime(master.gain.value || 0, now); master.gain.linearRampToValueAtTime(0, now + 0.05); } catch (_) {}
+        }
+      }
+      playbackActiveMasters = [];
+      state.isPlaying = false; state.currentBeat = -1;
+      if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
     } else {
-      startPlayback();
+      // โหมดรับชม: resume จาก currentStep ที่ค้างไว้ หรือเริ่มใหม่ถ้ายังไม่มี seq
+      if (!playbackSeq || playbackSeq.length === 0) {
+        startPlayback();
+      } else {
+        unlockAudio(); const ctx = ac(); if (!ctx) return;
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        state.isPlaying = true; state.playMode = 'all';
+        nextNoteTime = ctx.currentTime + 0.08;
+        playbackActiveMasters = []; playbackVisualTimers = [];
+        _autoScrollLastLine = null;
+        if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
+        scheduler();
+      }
     }
   });
 
@@ -3609,8 +3650,6 @@ function init() {
 
   document.getElementById('fcRewind').addEventListener('click', () => {
       stopPlayback(true);
-      playbackSeq = []; // force สร้าง seq ใหม่จากต้น
-      currentStep = 0;
       setTimeout(startPlayback, 50);
   });
 
@@ -3746,11 +3785,11 @@ function init() {
       if (!playbackSeq || playbackSeq.length === 0) return;
       step = Math.max(0, Math.min(step, playbackSeq.length - 1));
 
-      // เก็บ step ที่ต้องการไว้เสมอ (ใช้เมื่อกด Play ขณะ paused)
+      // เก็บ step ไว้เสมอ — ใช้เมื่อกด Play ใน focus mode (resume จากจุดที่ seek)
       currentStep = step;
 
       if (!state.isPlaying) {
-        // ขณะ paused: แค่อัพเดต UI และเก็บ step ไว้
+        // ขณะ paused: อัพเดต UI เท่านั้น
         setSeekUI(pctFromStep(step), step);
         return;
       }
