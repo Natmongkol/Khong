@@ -1721,8 +1721,16 @@ function renderGongs() {
     const range = inst.getNoteRange(i);
     noteLabel.innerHTML = `<span class="nn nn-${range}">${inst.base[i]}</span>`;
     gong.appendChild(noteLabel);
-    const interact = (e) => { e.preventDefault(); unlockAudio(); triggerGong(i); };
-    gong.addEventListener('pointerdown', interact);
+    // ใช้ touchstart สำหรับ touch device (ไม่ preventDefault เพื่อไม่ให้ iOS ติดค้าง)
+    // ใช้ mousedown สำหรับ mouse (desktop)
+    gong.addEventListener('touchstart', (e) => {
+      e.stopPropagation();
+      unlockAudio(); triggerGong(i);
+    }, { passive: true });
+    gong.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      unlockAudio(); triggerGong(i);
+    });
     stage.appendChild(gong);
   }
   layoutGongs();
@@ -3769,44 +3777,58 @@ function init() {
       stage._practiceMode = true;
       _activePointers.clear();
 
-      // ติด listener บนลูกฆ้องแต่ละลูกโดยตรง (ไม่ใช้ delegation + setPointerCapture บน stage)
-      // เพื่อหลีกเลี่ยงปัญหา pointer ติดค้างบน Safari/iOS
-      stage.querySelectorAll('.gong').forEach(gongEl => {
-        const idx = parseInt(gongEl.dataset.idx);
-
-        gongEl.onpointerdown = (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          gongEl.setPointerCapture(e.pointerId); // capture ที่ลูก ไม่ใช่ stage
-          _activePointers.set(e.pointerId, idx);
-          unlockAudio();
+      // ใช้ touch events แทน Pointer API — รองรับ multi-touch บน iOS/iPadOS ได้ดีกว่า
+      // และไม่มีปัญหา setPointerCapture ติดค้าง
+      stage._practiceHandleTouchStart = (e) => {
+        e.preventDefault(); // ป้องกัน scroll เฉพาะใน practice mode
+        unlockAudio();
+        for (const touch of e.changedTouches) {
+          const el = document.elementFromPoint(touch.clientX, touch.clientY);
+          const gongEl = el ? el.closest('.gong') : null;
+          if (!gongEl) continue;
+          const idx = parseInt(gongEl.dataset.idx);
+          _activePointers.set(touch.identifier, idx);
           playGong(idx);
           flashGong(idx);
-        };
+        }
+      };
 
-        gongEl.onpointermove = (e) => {
-          if (!_activePointers.has(e.pointerId)) return;
-          // ตรวจว่า pointer ย้ายไปลูกอื่นด้วย elementFromPoint
-          const el = document.elementFromPoint(e.clientX, e.clientY);
-          const targetGong = el ? el.closest('.gong') : null;
-          if (!targetGong) return;
-          const newIdx = parseInt(targetGong.dataset.idx);
-          const prevIdx = _activePointers.get(e.pointerId);
+      stage._practiceHandleTouchMove = (e) => {
+        e.preventDefault();
+        for (const touch of e.changedTouches) {
+          const el = document.elementFromPoint(touch.clientX, touch.clientY);
+          const gongEl = el ? el.closest('.gong') : null;
+          if (!gongEl) continue;
+          const newIdx = parseInt(gongEl.dataset.idx);
+          const prevIdx = _activePointers.get(touch.identifier);
           if (newIdx !== prevIdx) {
-            // release capture จากลูกเดิม แล้ว capture ลูกใหม่
-            try { gongEl.releasePointerCapture(e.pointerId); } catch(_) {}
-            try { targetGong.setPointerCapture(e.pointerId); } catch(_) {}
-            _activePointers.set(e.pointerId, newIdx);
+            _activePointers.set(touch.identifier, newIdx);
             playGong(newIdx);
             flashGong(newIdx);
           }
-        };
+        }
+      };
 
-        gongEl.onpointerup = gongEl.onpointercancel = (e) => {
-          _activePointers.delete(e.pointerId);
-          try { gongEl.releasePointerCapture(e.pointerId); } catch(_) {}
-        };
-      });
+      stage._practiceHandleTouchEnd = (e) => {
+        for (const touch of e.changedTouches) {
+          _activePointers.delete(touch.identifier);
+        }
+      };
+
+      // mouse support (desktop)
+      stage._practiceHandleMouseDown = (e) => {
+        const gongEl = e.target.closest('.gong');
+        if (!gongEl) return;
+        unlockAudio();
+        playGong(parseInt(gongEl.dataset.idx));
+        flashGong(parseInt(gongEl.dataset.idx));
+      };
+
+      stage.addEventListener('touchstart',  stage._practiceHandleTouchStart,  { passive: false });
+      stage.addEventListener('touchmove',   stage._practiceHandleTouchMove,   { passive: false });
+      stage.addEventListener('touchend',    stage._practiceHandleTouchEnd,    { passive: true  });
+      stage.addEventListener('touchcancel', stage._practiceHandleTouchEnd,    { passive: true  });
+      stage.addEventListener('mousedown',   stage._practiceHandleMouseDown);
     }
 
     function _teardownPracticeGongs() {
@@ -3814,12 +3836,17 @@ function init() {
       if (!stage) return;
       stage.style.touchAction = '';
       stage._practiceMode = false;
-      stage.querySelectorAll('.gong').forEach(gongEl => {
-        gongEl.onpointerdown  = null;
-        gongEl.onpointermove  = null;
-        gongEl.onpointerup    = null;
-        gongEl.onpointercancel = null;
-      });
+      if (stage._practiceHandleTouchStart) {
+        stage.removeEventListener('touchstart',  stage._practiceHandleTouchStart);
+        stage.removeEventListener('touchmove',   stage._practiceHandleTouchMove);
+        stage.removeEventListener('touchend',    stage._practiceHandleTouchEnd);
+        stage.removeEventListener('touchcancel', stage._practiceHandleTouchEnd);
+        stage.removeEventListener('mousedown',   stage._practiceHandleMouseDown);
+        stage._practiceHandleTouchStart = null;
+        stage._practiceHandleTouchMove  = null;
+        stage._practiceHandleTouchEnd   = null;
+        stage._practiceHandleMouseDown  = null;
+      }
       _activePointers.clear();
     }
 
