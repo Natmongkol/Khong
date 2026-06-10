@@ -695,6 +695,12 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   aspect-ratio: unset !important;
 }
 
+/* โหมดรับชม: ลูกฆ้องดูได้อย่างเดียว — ห้ามสัมผัส */
+.focus-body .gong-stage .gong {
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
 @media (max-width: 600px) {
   .focus-header { height: 48px; padding: 8px 14px; }
   .focus-controls { height: 72px; padding: 10px 16px; gap: 20px; }
@@ -1870,6 +1876,8 @@ let chordBuffer = { left: null, right: null }; let chordTimer = null;
 let tabHeld = false, shiftHeld = false, arrowUpHeld = false, arrowDownHeld = false;
 
 function triggerGong(idx) {
+  // โหมดรับชม: ห้ามโต้ตอบกับลูกฆ้องทุกกรณี
+  if (document.getElementById('focusOverlay')?.classList.contains('active')) return;
   playGong(idx); flashGong(idx);
   if (!state.isRecording || !state.isEditMode) return;
   chordBuffer[state.hand] = idx;
