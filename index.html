@@ -242,8 +242,13 @@ section.panel h3 {
   100% { transform: translate(-50%,-50%) scale(1);    box-shadow: 0 4px 12px rgba(0,0,0,0.45); }
 }
 .gong .note-label {
-  position: absolute; font-size: clamp(10px, calc(var(--gong-size) * 0.35), 16px);
-  font-weight: 600; color: var(--text); pointer-events: none; white-space: nowrap; line-height: 1;
+  position: absolute;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  font-size: clamp(11px, calc(var(--gong-size) * 0.38), 18px);
+  font-weight: 800; pointer-events: none; white-space: nowrap; line-height: 1;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
+  z-index: 2;
 }
 
 .notation-wrapper { width: 100%; overflow-x: auto; padding-bottom: 8px; user-select: none; -webkit-user-select: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; will-change: scroll-position; }
@@ -330,6 +335,11 @@ section.panel h3 {
 .nn-low::after, .nn-high::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; }
 .nn-low::after { bottom: 0.02em; width: 0.28em; height: 0.28em; background: currentColor; }
 .nn-high::after { top: 0.02em; width: 0.28em; height: 0.28em; background: currentColor; }
+
+/* สีโน้ตในลูกฆ้อง — สว่างชัดบนพื้นน้ำตาล */
+.gong .note-label .nn-high { color: #ffe066; }
+.gong .note-label .nn-mid  { color: #7fffb0; }
+.gong .note-label .nn-low  { color: #7dd4ff; }
 
 @media (hover: hover) { .beat-cell:hover { background: rgba(91,158,255,0.1); } }
 .beat-cell.current-beat { background: rgba(63,223,142,0.20); outline: 1px solid var(--green); }
@@ -1697,7 +1707,7 @@ function layoutGongs() {
   const inst = getActiveInst();
   const numGongs = inst.numGongs;
 
-  const labelGap = 8; const labelHalfBox = 13; const margin = 14;
+  const labelGap = 0; const labelHalfBox = 0; const margin = 14;
   const padRadial = labelGap + labelHalfBox;
 
   // --- คำนวณ gongSize จาก bounding box จริงของวง ---
@@ -1771,9 +1781,9 @@ function layoutGongs() {
 
     const label = gong.querySelector('.note-label');
     if (label) {
-      label.style.left = (gongSize / 2 + lx) + 'px';
-      label.style.top  = (gongSize / 2 + ly) + 'px';
-      label.style.transform = 'translate(-50%, -50%)';
+      label.style.left = '';
+      label.style.top  = '';
+      label.style.transform = '';
     }
   }
 }
