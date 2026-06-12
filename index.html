@@ -1810,8 +1810,11 @@ window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer
 // debounced wrapper — ใช้กรณีไม่ต้องการ render ทันที (เช่น resize, scroll)
 let _renderTimer = null;
 function renderNotationDeferred() {
-  if (_renderTimer) return;
-  _renderTimer = requestAnimationFrame(() => { _renderTimer = null; renderNotation(); });
+  if (_renderTimer) cancelAnimationFrame(_renderTimer);
+  _renderTimer = requestAnimationFrame(() => { 
+    _renderTimer = null; 
+    renderNotation(); 
+  });
 }
 
 // --- cache สำหรับ flashGong ---
@@ -2500,6 +2503,7 @@ function playCurrentRoom() {
   
   state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
   scheduler();
 }
@@ -2526,6 +2530,7 @@ function playSelectedRooms() {
   playbackSeq = seq;
   state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
   scheduler();
 }
@@ -2572,6 +2577,7 @@ function playSection(startLine) {
   playbackSeq = seq;
   state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
   scheduler();
 }
@@ -2616,6 +2622,7 @@ function playSectionRange(startSectionLine, endSectionLine) {
   playbackSeq = seq;
   state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
   scheduler();
 }
@@ -2658,7 +2665,19 @@ function playLine(lineNum) {
   playbackSeq = seq;
   state.isPlaying = true; currentStep = 0; nextNoteTime = ctx.currentTime + 0.1; state.playStart = nextNoteTime;
   playbackActiveMasters = []; playbackVisualTimers = [];
+  _autoScrollLastLine = null;
   const pBar = document.getElementById('playbackBar'); if (pBar) pBar.style.width = '0%';
+  
+  // อัปเดต UI ของปุ่มเล่นบรรทัด โดยไม่ต้อง render ใหม่ทั้งหน้า
+  const activeWrap = document.querySelector(`.line-wrap[data-line-num="${lineNum}"]`);
+  if (activeWrap) {
+      const activeBtn = activeWrap.querySelector('.line-play-btn');
+      if (activeBtn) {
+          activeBtn.textContent = '■';
+          activeBtn.className = 'line-play-btn stop-active';
+      }
+  }
+
   scheduler();
 }
 
@@ -2765,8 +2784,13 @@ function scheduleBeat(step, time) {
                const maxScroll = wrapper.scrollWidth - wrapWidth;
                const clamped = Math.min(targetScroll, Math.max(0, maxScroll));
                if (isNewLine) {
-                 // ขึ้นบรรทัดใหม่: เลื่อนกลับไปจุดเริ่มต้นของบรรทัดทันที ไม่ต้องรอ lerp
-                 wrapper.scrollTo({ left: clamped, behavior: 'smooth' });
+                 // ขึ้นบรรทัดใหม่: reset scrollLeft เป็น 0 ทันที (instant) ก่อน
+                 // เพื่อให้มือถือไม่ค้างอยู่ที่ขวาสุด แล้วค่อย scroll ไปตำแหน่ง beat แรก
+                 wrapper.scrollLeft = 0;
+                 // ใช้ requestAnimationFrame เพื่อให้ browser repaint ก่อน แล้วค่อย scroll
+                 requestAnimationFrame(() => {
+                   wrapper.scrollTo({ left: clamped, behavior: 'smooth' });
+                 });
                } else {
                  // ขยับแบบค่อยเป็นค่อยไป (lerp) ทุก beat เพื่อให้ดูสมูท ไม่กระโดด
                  const diff = clamped - wrapper.scrollLeft;
@@ -2809,6 +2833,12 @@ function stopPlayback(cutAudio = false) {
   if (typeof window._focusSeekUpdate === 'function') window._focusSeekUpdate(0);
 
   if (typeof window._syncFocusPlayBtn === 'function') window._syncFocusPlayBtn();
+
+  // รีเซ็ตปุ่ม ▶ ของบรรทัดที่เคยเล่นค้างไว้
+  document.querySelectorAll('.line-play-btn.stop-active').forEach(btn => {
+      btn.textContent = '▶';
+      btn.className = 'line-play-btn';
+  });
 }
 
 let isExporting = false;
@@ -4360,35 +4390,31 @@ function exportPDF() {
 
     const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
     const beatsInThisLine = barsInThisLine * 4;
+    const tableWidth = (barsInThisLine / 8) * 100; // คำนวณความกว้างตารางให้สมส่วน
 
     let topCells = '', botCells = '';
-    for (let b = 0; b < 32; b++) {
+    for (let b = 0; b < beatsInThisLine; b++) {
       const isBarEnd = (b + 1) % 4 === 0;
       const barEndClass = isBarEnd ? ' bar-end' : '';
       
-      if (b < beatsInThisLine) {
-          const globalBeat = line * 32 + b;
-          const rn = state.notes.right[globalBeat];
-          const ln = state.notes.left[globalBeat];
-          topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
-          botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
-      } else {
-          topCells += `<td class="nc${barEndClass} empty-cell"></td>`;
-          botCells += `<td class="nc${barEndClass} empty-cell"></td>`;
-      }
+      const globalBeat = line * 32 + b;
+      const rn = state.notes.right[globalBeat];
+      const ln = state.notes.left[globalBeat];
+      topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
+      botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
     }
 
     const hasRepeat = state.repeats && state.repeats[lineNum] !== undefined;
 
     contentHTML += `
       <div class="line-block${hasRepeat ? ' has-repeat' : ''}">
-        <table class="notation-table">
+        <table class="notation-table" style="width: ${tableWidth}%;">
           <tbody>
             <tr class="top-row">${topCells}</tr>
             <tr class="bot-row">${botCells}</tr>
           </tbody>
         </table>
-        ${hasRepeat ? '<div class="repeat-label">กลับต้น</div>' : ''}
+        ${hasRepeat ? `<div class="repeat-label" style="width: ${tableWidth}%;">กลับต้น</div>` : ''}
       </div>
     `;
   }
