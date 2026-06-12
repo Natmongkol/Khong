@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -251,22 +250,10 @@ section.panel h3 {
   z-index: 2;
 }
 
-.notation-wrapper { 
-  width: 100%; overflow-x: auto; padding-bottom: 8px; user-select: none; 
-  -webkit-user-select: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; 
-  will-change: scroll-position; 
-  display: flex; /* เพิ่ม Flex เพื่อสร้างพื้นที่ว่างตอนท้าย */
-}
-.notation-wrapper::after {
-  content: '';
-  min-width: 75%; /* เพิ่มพื้นที่ว่างด้านขวา 75% เพื่อให้ห้องสุดท้ายเลื่อนมาอยู่ซ้ายได้สบายๆ */
-  flex-shrink: 0;
-  pointer-events: none;
-}
-.notation { 
-  font-family: "SF Mono", Menlo, monospace; min-width: min(600px, 100%); touch-action: pan-x pan-y; 
-  flex: 1 0 auto; 
-  width: 100%;
+.notation-wrapper { width: 100%; overflow-x: auto; padding-bottom: 8px; user-select: none; -webkit-user-select: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; will-change: scroll-position; }
+.notation { font-family: "SF Mono", Menlo, monospace; min-width: min(600px, 100%); touch-action: pan-x pan-y; }
+@media (max-width: 768px) {
+  .notation { padding-right: 75vw; box-sizing: content-box; }
 }
 .bar-cell, .btn-line, .hand-label { touch-action: manipulation; }
 .bar-pair { display: flex; gap: 8px; margin-bottom: 12px; align-items: stretch; }
