@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -2730,6 +2731,40 @@ function _buildBeatCellMap() {
 let _currentBeatCells = [];   // cells ที่ highlight อยู่ตอนนี้
 let _autoScrollLastLine = null; // บรรทัดล่าสุดที่ scroll ไป
 
+// ระบบ Lerp Scroll เพื่อความนุ่มนวลสูงสุด (ไม่กระตุกตามจังหวะบีท)
+let _scrollLerpId = null;
+let _scrollTarget = 0;
+let _scrollWrapper = null;
+
+function smoothScrollTick() {
+    if (!_scrollWrapper) return;
+    const current = _scrollWrapper.scrollLeft;
+    const diff = _scrollTarget - current;
+
+    // ถ้ายังห่างเป้าหมายอยู่ ให้เลื่อนเข้าหาเป้า 8% ของระยะที่เหลือในทุกๆ เฟรม
+    if (Math.abs(diff) > 0.5) {
+        _scrollWrapper.scrollLeft = current + diff * 0.08;
+        _scrollLerpId = requestAnimationFrame(smoothScrollTick);
+    } else {
+        _scrollWrapper.scrollLeft = _scrollTarget; // ถึงเป้าหมายแล้ว ล็อคให้เป๊ะ
+        _scrollLerpId = null;
+    }
+}
+
+function setScrollTarget(wrapper, target, instant = false) {
+    _scrollWrapper = wrapper;
+    _scrollTarget = target;
+    if (instant) {
+        if (_scrollLerpId) cancelAnimationFrame(_scrollLerpId);
+        _scrollLerpId = null;
+        wrapper.scrollLeft = target;
+    } else {
+        if (!_scrollLerpId) {
+            _scrollLerpId = requestAnimationFrame(smoothScrollTick);
+        }
+    }
+}
+
 function scheduleBeat(step, time) {
   const beat = playbackSeq[step]; const ctx = ac();
   const handsToPlay = (state.playMode === 'selection' || state.playMode === 'section' || state.playMode === 'line') ? state.selectionHands : ['right', 'left'];
@@ -2766,37 +2801,35 @@ function scheduleBeat(step, time) {
                _autoScrollLastLine = thisLine;
                scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
              }
-             // scroll แนวนอนให้ notation-wrapper ตามตำแหน่ง beat ที่เล่นอยู่แบบนุ่มนวล (สำคัญบนมือถือ)
+             
+             // เลื่อนหน้าจอแนวนอนตามตัวโน้ต
              const cell = _currentBeatCells[0];
              const wrapper = cell.closest('.notation-wrapper');
              if (wrapper) {
-               const barCell = cell.closest('.bar-cell');
-               const barRow  = cell.closest('.bar-row');
-               const rowsContainer = cell.closest('.bar-rows-container');
-               const cellLeft = (rowsContainer ? rowsContainer.offsetLeft : 0)
-                              + (barRow  ? barRow.offsetLeft  : 0)
-                              + (barCell ? barCell.offsetLeft : 0)
-                              + cell.offsetLeft;
-               const wrapWidth  = wrapper.clientWidth;
-               const cellCenter = cellLeft + cell.offsetWidth / 2;
-               // เก็บโน้ตปัจจุบันไว้ที่ ~35% จากซ้ายของจอ เพื่อให้เห็นโน้ตที่กำลังจะมาถึงล่วงหน้า
-               const targetScroll = Math.max(0, cellCenter - wrapWidth * 0.35);
-               const maxScroll = wrapper.scrollWidth - wrapWidth;
-               const clamped = Math.min(targetScroll, Math.max(0, maxScroll));
+               // คำนวณตำแหน่งที่แน่นอนของตัวโน้ตโดยใช้ getBoundingClientRect เพื่อความแม่นยำสูงสุด
+               const cellRect = cell.getBoundingClientRect();
+               const wrapRect = wrapper.getBoundingClientRect();
+               
+               // ตำแหน่งกึ่งกลางโน้ตสัมพัทธ์กับเนื้อหาทั้งหมดภายในตาราง (ตำแหน่งปัจจุบันบนจอ + ระยะที่เลื่อนไปแล้ว)
+               const absoluteCellCenter = (cellRect.left + cellRect.width / 2) - wrapRect.left + wrapper.scrollLeft;
+               
+               // ล็อคตำแหน่งตัวโน้ตปัจจุบันให้อยู่ที่ 30% ของหน้าจอเสมอ 
+               let targetScroll = absoluteCellCenter - wrapRect.width * 0.30;
+               
+               // ป้องกันไม่ให้เลื่อนเกินขอบซ้าย (0) และขอบขวาสุด
+               const maxScroll = wrapper.scrollWidth - wrapRect.width;
+               targetScroll = Math.max(0, Math.min(targetScroll, maxScroll));
+               
                if (isNewLine) {
-                 // ขึ้นบรรทัดใหม่: reset scrollLeft เป็น 0 ทันที (instant) ก่อน
-                 // เพื่อให้มือถือไม่ค้างอยู่ที่ขวาสุด แล้วค่อย scroll ไปตำแหน่ง beat แรก
-                 wrapper.scrollLeft = 0;
-                 // ใช้ requestAnimationFrame เพื่อให้ browser repaint ก่อน แล้วค่อย scroll
-                 requestAnimationFrame(() => {
-                   wrapper.scrollTo({ left: clamped, behavior: 'smooth' });
-                 });
-               } else {
-                 // ขยับแบบค่อยเป็นค่อยไป (lerp) ทุก beat เพื่อให้ดูสมูท ไม่กระโดด
-                 const diff = clamped - wrapper.scrollLeft;
-                 if (Math.abs(diff) > 1) {
-                   wrapper.scrollTo({ left: wrapper.scrollLeft + diff * 0.35, behavior: 'auto' });
+                 // บังคับกลับซ้ายสุดทันทีเมื่อขึ้นบรรทัดใหม่ แบบไม่มีแอนิเมชัน
+                 setScrollTarget(wrapper, 0, true);
+                 // หลังจากดีดกลับซ้ายสุดแล้ว ค่อยๆ ให้มันไหลไปตำแหน่งเป้าหมายต่อ
+                 if (targetScroll > 0) {
+                     setTimeout(() => setScrollTarget(wrapper, targetScroll, false), 50);
                  }
+               } else {
+                 // อัปเดตเป้าหมาย แล้วปล่อยให้ Lerp Animation ค่อยๆ ไหลตามไปอย่างนุ่มนวล
+                 setScrollTarget(wrapper, targetScroll, false);
                }
              }
          }
@@ -2810,6 +2843,9 @@ function stopPlayback(cutAudio = false) {
   state.isPlaying = false; state.currentBeat = -1; state.currentPlayingLine = null;
   if (schedulerTimer) clearTimeout(schedulerTimer); if (playbackEndTimer) clearTimeout(playbackEndTimer);
   playbackVisualTimers.forEach(clearTimeout); playbackVisualTimers = [];
+
+  // หยุด animation เลื่อนหน้าจอ
+  if (_scrollLerpId) { cancelAnimationFrame(_scrollLerpId); _scrollLerpId = null; }
 
   // ใช้ cache แทน querySelectorAll
   _currentBeatCells.forEach(c => c.classList.remove('current-beat'));
