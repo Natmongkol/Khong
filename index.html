@@ -2742,7 +2742,8 @@ function scheduleBeat(step, time) {
              const scrollTarget = lineWrap || _currentBeatCells[0];
              const prevLine = _autoScrollLastLine;
              const thisLine = lineWrap ? lineWrap.dataset.lineNum : null;
-             if (thisLine !== prevLine) {
+             const isNewLine = thisLine !== prevLine;
+             if (isNewLine) {
                _autoScrollLastLine = thisLine;
                scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
              }
@@ -2763,10 +2764,15 @@ function scheduleBeat(step, time) {
                const targetScroll = Math.max(0, cellCenter - wrapWidth * 0.35);
                const maxScroll = wrapper.scrollWidth - wrapWidth;
                const clamped = Math.min(targetScroll, Math.max(0, maxScroll));
-               // ขยับแบบค่อยเป็นค่อยไป (lerp) ทุก beat เพื่อให้ดูสมูท ไม่กระโดด
-               const diff = clamped - wrapper.scrollLeft;
-               if (Math.abs(diff) > 1) {
-                 wrapper.scrollTo({ left: wrapper.scrollLeft + diff * 0.35, behavior: 'auto' });
+               if (isNewLine) {
+                 // ขึ้นบรรทัดใหม่: เลื่อนกลับไปจุดเริ่มต้นของบรรทัดทันที ไม่ต้องรอ lerp
+                 wrapper.scrollTo({ left: clamped, behavior: 'smooth' });
+               } else {
+                 // ขยับแบบค่อยเป็นค่อยไป (lerp) ทุก beat เพื่อให้ดูสมูท ไม่กระโดด
+                 const diff = clamped - wrapper.scrollLeft;
+                 if (Math.abs(diff) > 1) {
+                   wrapper.scrollTo({ left: wrapper.scrollLeft + diff * 0.35, behavior: 'auto' });
+                 }
                }
              }
          }
