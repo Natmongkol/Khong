@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -524,8 +525,30 @@ section.panel h3 {
 #multiSelectActionMenu .tsm-btn:nth-child(1), #multiSelectActionMenu .tsm-btn:nth-child(2) { border-bottom: 1px solid var(--border); }
 #multiSelectActionMenu .tsm-btn:nth-child(even) { border-right: none; }
 
-#lineActionMenu .tsm-btn { flex: 1 1 30%; border-bottom: none; padding: 12px 14px; font-size: 13px; }
-#lineActionMenu .tsm-btn:nth-child(3n) { border-right: none; }
+#lineActionMenu .tsm-btn { flex: 1 1 22%; border-bottom: none; padding: 12px 10px; font-size: 13px; }
+#lineActionMenu .tsm-btn:nth-child(4n) { border-right: none; }
+
+.bar-rows-container.multi-line-selected {
+  background: rgba(91,158,255,0.08);
+  outline: 2px solid var(--accent);
+  border-radius: 6px;
+  padding: 4px;
+  margin: -4px;
+}
+#multiLineActionMenu {
+  position: fixed; z-index: 1010;
+  background: rgba(19, 24, 38, 0.97); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--accent); border-radius: 10px;
+  display: flex; flex-wrap: wrap; max-width: min(320px, 94vw); justify-content: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(91,158,255,0.2);
+  overflow: hidden; bottom: 88px; left: 50%; transform: translateX(-50%);
+}
+#multiLineActionMenu.hidden { display: none; }
+#multiLineActionMenu .tsm-btn { flex: 1 1 45%; border-bottom: none; padding: 12px 14px; font-size: 13px; }
+#multiLineActionMenu .tsm-btn:nth-child(1),
+#multiLineActionMenu .tsm-btn:nth-child(2) { border-bottom: 1px solid var(--border); }
+#multiLineActionMenu .tsm-btn:nth-child(even) { border-right: none; }
+#multiLineActionMenu .tsm-btn:nth-child(3):last-child { flex: 1 1 100%; border-right: none; }
 
 .playback-bar-wrap { width: 100%; height: 3px; background: var(--panel-3); border-radius: 3px; overflow: hidden; margin-top: 10px; }
 .playback-bar-fill { height: 100%; width: 0%; background: var(--green); border-radius: 3px; transition: width 0.1s linear; }
@@ -1074,7 +1097,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
 <div class="touch-sel-menu hidden" id="lineActionMenu">
   <button class="tsm-btn" id="lamCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
   <button class="tsm-btn" id="lamPaste" disabled><span class="tsm-icon">📋</span>วาง</button>
+  <button class="tsm-btn" id="lamMultiLine"><span class="tsm-icon">☑</span>เลือกหลาย</button>
   <button class="tsm-btn" id="lamCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
+</div>
+<div id="multiLineActionMenu" class="hidden">
+  <button class="tsm-btn" id="mlmCopy"><span class="tsm-icon">⎘</span>คัดลอกทั้งหมด</button>
+  <button class="tsm-btn tsm-del" id="mlmClear"><span class="tsm-icon">⌫</span>ล้างทั้งหมด</button>
+  <button class="tsm-btn tsm-play" id="mlmPlay"><span class="tsm-icon">▶</span>เล่นที่เลือก</button>
+  <button class="tsm-btn" id="mlmCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
 </div>
 <div class="touch-sel-menu hidden" id="multiSelectActionMenu" style="top: auto; bottom: 80px; left: 50%; transform: translateX(-50%); box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
   <button class="tsm-btn" id="msmCopy"><span class="tsm-icon">⎘</span>คัดลอก</button>
@@ -1476,6 +1506,11 @@ function hideCellMenus() {
   document.getElementById('cellActionMenu')?.classList.add('hidden');
   document.getElementById('cellEditMenu')?.classList.add('hidden');
   document.getElementById('lineActionMenu')?.classList.add('hidden');
+  if (state.isMultiLineMode) {
+    state.isMultiLineMode = false;
+    state.selectedLines = new Set();
+    document.getElementById('multiLineActionMenu')?.classList.add('hidden');
+  }
 }
 
 function positionMenuForCell(menu) {
@@ -1553,7 +1588,8 @@ const state = {
   notes: { right: [], left: [] }, clipboardVak: null, repeats: {}, sections: {}, lineLengths: {},
   playMode: 'all', selectionHands: ['right', 'left'], _editingSection: null,
   isEditMode: false, isMultiSelectMode: false, selectedRooms: new Set(), currentPlayingLine: null,
-  selectedLine: null
+  selectedLine: null,
+  isMultiLineMode: false, selectedLines: new Set()
 };
 
 let lastTap = { time: 0, beat: -1, hand: '' };
@@ -2700,6 +2736,9 @@ function renderNotation() {
     if (state.selectedLine === lineNum) {
         rowsContainer.classList.add('selected-line');
     }
+    if (state.isMultiLineMode && state.selectedLines.has(lineNum)) {
+        rowsContainer.classList.add('multi-line-selected');
+    }
     
     ['right', 'left'].forEach(hand => {
       const row = document.createElement('div'); row.className = 'bar-row ' + hand;
@@ -2715,6 +2754,16 @@ function renderNotation() {
       if (hand === 'right') {
           label.title = 'แตะที่นี่เพื่อคัดลอก/วางบรรทัด';
           label.addEventListener('click', (e) => {
+              if (state.isMultiLineMode) {
+                  // toggle selection of this line
+                  if (state.selectedLines.has(lineNum)) {
+                      state.selectedLines.delete(lineNum);
+                  } else {
+                      state.selectedLines.add(lineNum);
+                  }
+                  renderNotation();
+                  return;
+              }
               state.selectedLine = lineNum;
               renderNotation(); 
               hideCellMenus();
@@ -4872,11 +4921,102 @@ function init() {
       }
   });
   
+  document.getElementById('lamMultiLine')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideCellMenus();
+      state.isMultiLineMode = true;
+      state.selectedLines = new Set();
+      if (state.selectedLine !== null) {
+          state.selectedLines.add(state.selectedLine);
+          state.selectedLine = null;
+      }
+      renderNotation();
+      document.getElementById('multiLineActionMenu').classList.remove('hidden');
+  });
+
   document.getElementById('lamCancel')?.addEventListener('click', (e) => {
       e.preventDefault();
       state.selectedLine = null;
       renderNotation();
       hideCellMenus();
+  });
+
+  // Multi-Line Action Menu handlers
+  function exitMultiLineMode() {
+      state.isMultiLineMode = false;
+      state.selectedLines = new Set();
+      document.getElementById('multiLineActionMenu').classList.add('hidden');
+      renderNotation();
+  }
+
+  document.getElementById('mlmCancel')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      exitMultiLineMode();
+  });
+
+  document.getElementById('mlmCopy')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sorted = [...state.selectedLines].sort((a, b) => a - b);
+      if (sorted.length === 0) { showToast('ยังไม่ได้เลือกบรรทัด', 'error'); return; }
+      const BEATS = BARS_PER_VAK * BEATS_PER_BAR;
+      const allRight = [], allLeft = [];
+      sorted.forEach(lineNum => {
+          const startB = (lineNum - 1) * BEATS;
+          allRight.push(...state.notes.right.slice(startB, startB + BEATS));
+          allLeft.push(...state.notes.left.slice(startB, startB + BEATS));
+      });
+      customClipboard = { type: 'multiLine', data: { right: allRight, left: allLeft }, length: allRight.length, lineCount: sorted.length, originalHand: 'both' };
+      // Also copy as text to system clipboard if supported
+      const displayNotes = getActiveInst ? getActiveInst().display : null;
+      if (navigator.clipboard && displayNotes) {
+          const toStr = arr => arr.map(n => n === null || !displayNotes[n] ? '-' : displayNotes[n]).join(' ');
+          const lines = sorted.map((lineNum, i) => {
+              const startB = (lineNum - 1) * BEATS;
+              const r = state.notes.right.slice(startB, startB + BEATS);
+              const l = state.notes.left.slice(startB, startB + BEATS);
+              return `บรรทัด ${lineNum}\nR: ${toStr(r)}\nL: ${toStr(l)}`;
+          });
+          navigator.clipboard.writeText(lines.join('\n\n')).catch(() => {});
+      }
+      showToast(`คัดลอก ${sorted.length} บรรทัด (บรรทัดที่ ${sorted.join(', ')}) เรียบร้อย`, 'success');
+      exitMultiLineMode();
+  });
+
+  document.getElementById('mlmClear')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sorted = [...state.selectedLines].sort((a, b) => a - b);
+      if (sorted.length === 0) { showToast('ยังไม่ได้เลือกบรรทัด', 'error'); return; }
+      pushUndo();
+      const BEATS = BARS_PER_VAK * BEATS_PER_BAR;
+      sorted.forEach(lineNum => {
+          const startB = (lineNum - 1) * BEATS;
+          for (let i = 0; i < BEATS; i++) {
+              state.notes.right[startB + i] = null;
+              state.notes.left[startB + i] = null;
+          }
+      });
+      showToast(`ล้าง ${sorted.length} บรรทัดเรียบร้อย`, 'success');
+      exitMultiLineMode();
+  });
+
+  document.getElementById('mlmPlay')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      const sorted = [...state.selectedLines].sort((a, b) => a - b);
+      if (sorted.length === 0) { showToast('ยังไม่ได้เลือกบรรทัด', 'error'); return; }
+      exitMultiLineMode();
+      // Play from first selected line to last selected line
+      const firstLine = sorted[0];
+      const lastLine = sorted[sorted.length - 1];
+      const BEATS = BARS_PER_VAK * BEATS_PER_BAR;
+      const startBeat = (firstLine - 1) * BEATS;
+      const endBeat = lastLine * BEATS;
+      if (typeof playRange === 'function') {
+          playRange(startBeat, endBeat);
+      } else if (typeof startPlayback === 'function') {
+          startPlayback(startBeat, endBeat);
+      } else {
+          showToast('เล่นบรรทัดที่ ' + sorted.join(', '), 'success');
+      }
   });
   
   document.getElementById('camEdit')?.addEventListener('click', (e) => { 
