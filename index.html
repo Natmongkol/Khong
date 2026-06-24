@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -647,6 +646,204 @@ section.panel h3 {
 
 footer { padding: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--muted); }
 
+/* ===== Gong Popup Overlay ===== */
+#gongPopupOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(6, 9, 18, 0.96);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  z-index: 8000;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+#gongPopupOverlay.active {
+  opacity: 1; pointer-events: auto;
+}
+
+/* กล่องกลางจอ — เป็น flex เพื่อจัดกึ่งกลาง กว้าง/สูงเต็มหน้าจอ */
+#gongPopupStage {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 16px 16px; /* เว้นบนให้ label+ปุ่ม ✕ */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* gong-stage ข้างใน: ใช้ pattern เดียวกับ .focus-body .gong-stage */
+#gongPopupStage .gong-stage {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  background: transparent !important;
+  border: none !important;
+  aspect-ratio: unset !important;
+}
+
+/* ปุ่มปิด ✕ มุมขวาบน */
+#gongPopupClose {
+  position: fixed;
+  top: max(14px, env(safe-area-inset-top, 14px));
+  right: max(14px, env(safe-area-inset-right, 14px));
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 1.5px solid rgba(255,255,255,0.22);
+  background: rgba(20, 25, 42, 0.92);
+  color: #fff; font-size: 22px; font-weight: 700; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  z-index: 8010;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.55);
+}
+#gongPopupClose:hover  { background: var(--red); border-color: var(--red); transform: scale(1.08); }
+#gongPopupClose:active { transform: scale(0.91); }
+
+/* label กลางบน */
+#gongPopupLabel {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  left: 50%; transform: translateX(-50%);
+  font-size: 12px; font-weight: 700; color: var(--muted);
+  background: rgba(13,18,32,0.82); border: 1px solid var(--border);
+  border-radius: 20px; padding: 5px 16px;
+  white-space: nowrap; pointer-events: none;
+  z-index: 8010;
+}
+
+/* ===== AssistiveTouch-style Quick Nav ===== */
+#quickNav {
+  position: fixed;
+  /* ตำแหน่ง default — JS จะ override ทันทีหลัง load */
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 600;
+  pointer-events: auto;
+  user-select: none; -webkit-user-select: none;
+  /* snap transition (ใช้เฉพาะตอน snap ขอบ / idle fade) */
+  transition: left 0.32s cubic-bezier(0.4,0,0.2,1),
+              top  0.32s cubic-bezier(0.4,0,0.2,1),
+              opacity 0.4s ease;
+}
+/* ขณะลาก: ไม่มี transition เลย */
+#quickNav.at-dragging { transition: none !important; }
+
+/* ===== ปุ่มหลัก (วงกลม) ===== */
+#qnavToggle {
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(20, 26, 46, 0.72);
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  color: #fff;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  /* outer ring */
+  box-shadow:
+    0 0 0 1.5px rgba(255,255,255,0.18),
+    0 4px 20px rgba(0,0,0,0.55),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  touch-action: none; /* ให้ pointer events ทำงาน ไม่ให้ browser scroll แทน */
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  /* ป้องกัน text-select บน desktop */
+  -webkit-user-select: none; user-select: none;
+}
+
+/* idle: จางลง 40% เหมือน AssistiveTouch หลังไม่มีกิจกรรม */
+#quickNav.at-idle #qnavToggle {
+  opacity: 0.42;
+}
+#quickNav.at-idle:hover #qnavToggle,
+#quickNav.at-idle:focus-within #qnavToggle {
+  opacity: 1;
+}
+
+/* กำลังลาก */
+#quickNav.at-dragging #qnavToggle {
+  opacity: 0.78;
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 2px rgba(255,213,74,0.55),
+    0 8px 28px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.14);
+  cursor: grabbing;
+}
+
+/* hover/active (ไม่ใช่ขณะลาก) */
+#quickNav:not(.at-dragging) #qnavToggle:hover {
+  box-shadow:
+    0 0 0 2px rgba(255,255,255,0.28),
+    0 6px 24px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(255,255,255,0.14);
+}
+#quickNav:not(.at-dragging) #qnavToggle:active {
+  transform: scale(0.92);
+}
+
+/* สถานะ return-mode (popup เปิดอยู่) */
+#qnavToggle.return-mode {
+  background: rgba(15, 30, 70, 0.82);
+  box-shadow:
+    0 0 0 2px rgba(91,158,255,0.55),
+    0 4px 20px rgba(91,158,255,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+  animation: at-pulse 2s ease-in-out infinite;
+}
+@keyframes at-pulse {
+  0%,100% { box-shadow: 0 0 0 2px rgba(91,158,255,0.55), 0 4px 20px rgba(91,158,255,0.28), inset 0 1px 0 rgba(255,255,255,0.12); }
+  50%      { box-shadow: 0 0 0 5px rgba(91,158,255,0.22), 0 4px 24px rgba(91,158,255,0.4),  inset 0 1px 0 rgba(255,255,255,0.12); }
+}
+#quickNav.at-dragging #qnavToggle.return-mode { animation: none !important; }
+
+/* ซ่อน drag-bar เดิม (ไม่ต้องการแล้ว) */
+#qnavDragBar { display: none !important; }
+
+/* Tooltip */
+.qnav-tooltip {
+  position: absolute;
+  /* ค่า default: แสดงทางซ้าย — JS จะ flip ถ้า snap ซ้าย */
+  right: calc(100% + 10px);
+  left: auto;
+  top: 50%; transform: translateY(-50%);
+  background: var(--panel-2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px;
+  font-size: 12px; font-weight: 600; color: var(--text);
+  white-space: nowrap; pointer-events: none;
+  opacity: 0; transition: opacity 0.18s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.qnav-tooltip::after {
+  content: ''; position: absolute;
+  left: 100%; top: 50%; transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: var(--border);
+}
+/* tooltip ด้านขวา (เมื่อปุ่มอยู่ซีกซ้ายของจอ) */
+.qnav-tooltip.tip-right {
+  right: auto;
+  left: calc(100% + 10px);
+}
+.qnav-tooltip.tip-right::after {
+  left: auto; right: 100%;
+  border-left-color: transparent;
+  border-right-color: var(--border);
+}
+#quickNav:not(.at-dragging) #qnavToggle:hover .qnav-tooltip,
+#quickNav:not(.at-dragging) #qnavToggle:focus .qnav-tooltip { opacity: 1; }
+#quickNav.at-dragging .qnav-tooltip { opacity: 0 !important; }
+#quickNav.at-idle .qnav-tooltip { opacity: 0 !important; }
+
+@media (max-width: 600px) {
+  #qnavToggle { width: 46px; height: 46px; font-size: 22px; }
+}
+
 .save-panel { padding: 16px 20px; background: rgba(63,223,142,0.05); border-bottom: 1px solid rgba(63,223,142,0.2); }
 @media (max-width: 600px) { .save-panel { padding: 14px 16px; } }
 .save-panel-title { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
@@ -1111,6 +1308,23 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   <button class="tsm-btn" id="msmPaste" disabled><span class="tsm-icon">📋</span>วาง</button>
   <button class="tsm-btn tsm-play" id="msmPlay"><span class="tsm-icon">▶</span>เล่นซ้ำ</button>
   <button class="tsm-btn" id="msmCancel"><span class="tsm-icon">✕</span>ยกเลิก</button>
+</div>
+
+<!-- Gong Popup Overlay -->
+<div id="gongPopupOverlay">
+  <div id="gongPopupLabel">👁️ ดูวงฆ้อง — แตะลูกฆ้องเพื่อเล่น</div>
+  <div id="gongPopupStage"></div>
+  <button id="gongPopupClose" title="ปิด (Esc)">✕</button>
+</div>
+
+<!-- Quick Nav: ปุ่มลอยด้านขวา (ปุ่มเดียว toggle) -->
+<!-- AssistiveTouch-style Quick Nav: ลากได้ทุกจุด, snap ขอบจอ, จางเมื่อ idle -->
+<div id="quickNav">
+  <div id="qnavDragBar" aria-hidden="true"></div><!-- hidden — ไม่ใช้แล้ว แต่เก็บ id ไว้ไม่ให้ JS error -->
+  <button id="qnavToggle" aria-label="ไปวงฆ้อง / กลับบรรทัดที่บันทึก">
+    <span id="qnavIcon">👁️</span>
+    <span class="qnav-tooltip" id="qnavTooltip">ไปดูวงฆ้อง</span>
+  </button>
 </div>
 
 <!-- Touch Keyboard -->
@@ -1759,14 +1973,14 @@ function playGongFreq(freq, when, gain = 1, customCtx = null) {
       { ratio: 8.30, gain: 0.035, decay: 0.22 },
     ];
     
-    let maxDecay = 0;
+    let maxDecay = 0; let lastOsc = null;
     partials.forEach(({ratio, gain: g, decay}) => {
       const osc = ctx.createOscillator(); osc.type = 'sine'; osc.frequency.value = freq * ratio;
       const env = ctx.createGain();
       env.gain.setValueAtTime(0, t); env.gain.linearRampToValueAtTime(g, t + 0.004); env.gain.exponentialRampToValueAtTime(0.0006, t + decay);
       osc.connect(env); env.connect(master); osc.start(t); osc.stop(t + decay + 0.05);
       osc.onended = () => { try { osc.disconnect(); env.disconnect(); } catch(e){} };
-      if (decay > maxDecay) maxDecay = decay;
+      if (decay > maxDecay) { maxDecay = decay; lastOsc = osc; }
     });
 
     const buf = _getNoiseBuf(ctx);
@@ -1777,10 +1991,15 @@ function playGongFreq(freq, when, gain = 1, customCtx = null) {
     noise.connect(noiseFilter); noiseFilter.connect(noiseEnv); noiseEnv.connect(master); noise.start(t);
     noise.onended = () => { try { noise.disconnect(); noiseFilter.disconnect(); noiseEnv.disconnect(); } catch(e){} };
 
-    // ล้าง master/lp ออกจาก graph หลังจากเสียงสลายไปหมดแล้ว (ป้องกัน node สะสมจนเสียงแตก/หน่วงเมื่อเล่นนาน)
-    // ไม่ทำ cleanup กับ OfflineAudioContext เพราะ setTimeout อาจยิงระหว่าง startRendering() ทำให้เสียงหาย
-    if (!customCtx) {
-      setTimeout(() => { try { master.disconnect(); lp.disconnect(); } catch(e){} }, (maxDecay + 0.1) * 1000);
+    // ล้าง master/lp เมื่อ osc ที่อายุยาวสุด (maxDecay) จบ — ป้องกัน node สะสม
+    // ใช้ onended แทน setTimeout เพื่อหลีกเลี่ยง timer ที่อาจยิงผิดเวลา
+    // OfflineAudioContext: onended เชื่อถือได้กว่า setTimeout ระหว่าง startRendering
+    if (lastOsc) {
+      const origOnEnded = lastOsc.onended;
+      lastOsc.onended = () => {
+        if (origOnEnded) origOnEnded();
+        try { master.disconnect(); lp.disconnect(); } catch(e){}
+      };
     }
 
     return master;
@@ -2056,7 +2275,7 @@ function commitChord() {
   if (left !== null) state.notes.left[state.cursorBeat] = left;
   if (right !== null) state.notes.right[state.cursorBeat] = right;
   
-  advanceCursor(); renderNotation();
+  advanceCursor(); patchNotation();
 }
 
 function insertRest() {
@@ -2065,7 +2284,7 @@ function insertRest() {
   if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; chordBuffer = { left: null, right: null }; }
   pushUndo();
   state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
-  advanceCursor(); renderNotation();
+  advanceCursor(); patchNotation();
 }
 
 function deleteAtCursor() {
@@ -2080,18 +2299,14 @@ function deleteAtCursor() {
     state.cursorBeat = beat - 1;
     state.notes.left[state.cursorBeat] = null; state.notes.right[state.cursorBeat] = null;
   }
-  renderNotation();
+  patchNotation();
 }
 
 function moveCursorBy(delta) {
   if (delta === 1) { advanceCursor(); } else {
     state.cursorBeat = Math.max(0, state.cursorBeat + delta);
-    requestAnimationFrame(() => {
-      const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
-      if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
-    });
   }
-  renderNotation();
+  patchNotation();
 }
 
 function getSafeFilename(name) {
@@ -2356,6 +2571,9 @@ function moveLineDownNoUndo(lineIndex) {
     moveLineUpNoUndo(lineIndex + 1);
 }
 
+// fingerprint ล่าสุดที่ updateSectionStats ใช้ build DOM — ป้องกัน rebuild ซ้ำ
+let _secStatsFP = null;
+
 function updateSectionStats() {
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
   const sectionKeys = Object.keys(state.sections || {}).map(Number).sort((a,b)=>a-b);
@@ -2366,6 +2584,11 @@ function updateSectionStats() {
   
   const el = document.getElementById('sectionCount');
   if (el) el.textContent = `${sectionKeys.length} ท่อน`;
+
+  // fingerprint: totalLines + section keys + section names — ถ้าเหมือนกัน ข้ามการ rebuild DOM
+  const fp = totalLines + '|' + sectionKeys.map(k => k + ':' + ((state.sections && state.sections[k]) || '')).join(',');
+  if (fp === _secStatsFP) return;
+  _secStatsFP = fp;
 
   document.querySelectorAll('.dynamic-sec-stat').forEach(e => e.remove());
   const statsContainer = document.getElementById('statsContainer');
@@ -2605,7 +2828,137 @@ function onLineDragEnd(e) {
   }
 }
 
+// ===== patchNotation: อัพเดตเฉพาะ beat-cells ที่เปลี่ยนแปลง + cursor =====
+// เรียกแทน renderNotation() ในกรณีที่โครงสร้าง DOM ไม่เปลี่ยน (กดโน้ต/เลื่อน cursor)
+// หาก DOM ยังไม่มีหรือจำนวนบรรทัด/ห้องเปลี่ยน → fallback ไป renderNotation() ปกติ
+let _patchPrevNotes = null; // snapshot ก่อนหน้า { right: [...], left: [...] }
+let _patchPrevCursor = -2;  // cursorBeat ก่อนหน้า
+let _patchPrevHand = null;  // hand ก่อนหน้า
+let _patchPrevEditMode = null;
+
+function patchNotation() {
+  const root = document.getElementById('notation');
+  // หากไม่มี DOM หรือจำนวนบรรทัดเปลี่ยน → rebuild เต็ม
+  const expectedLines = Math.ceil(state.numBars / 8);
+  if (!root || root.querySelectorAll('.line-wrap').length !== expectedLines) {
+    renderNotation(); return;
+  }
+  if (!_beatCellMap || _beatCellMap.size === 0) { renderNotation(); return; }
+
+  const cursorBeat = state.cursorBeat;
+  const hand = state.hand;
+  const editMode = state.isEditMode;
+  const prev = _patchPrevNotes;
+
+  // หา beats ที่เปลี่ยนค่า
+  const dirtyBeats = new Set();
+
+  if (prev) {
+    const total = state.notes.right.length;
+    for (let i = 0; i < total; i++) {
+      if (state.notes.right[i] !== prev.right[i] || state.notes.left[i] !== prev.left[i]) {
+        dirtyBeats.add(i);
+      }
+    }
+  }
+
+  // เพิ่ม beats ที่ cursor เปลี่ยน (ต้อง repaint class edit-box)
+  if (_patchPrevCursor !== cursorBeat) {
+    if (_patchPrevCursor >= 0) dirtyBeats.add(_patchPrevCursor);
+    if (cursorBeat >= 0) dirtyBeats.add(cursorBeat);
+  }
+  if (_patchPrevHand !== hand || _patchPrevEditMode !== editMode) {
+    if (_patchPrevCursor >= 0) dirtyBeats.add(_patchPrevCursor);
+    if (cursorBeat >= 0) dirtyBeats.add(cursorBeat);
+  }
+
+  // อัพเดต bar-cell active-room-box / edit-room-box class สำหรับ ห้องที่ cursor อยู่
+  const prevBar = _patchPrevCursor >= 0 ? Math.floor(_patchPrevCursor / 4) : -1;
+  const curBar  = cursorBeat >= 0 ? Math.floor(cursorBeat / 4) : -1;
+  if (prevBar !== curBar) {
+    // ลบ class จาก bar เก่า
+    if (prevBar >= 0) {
+      document.querySelectorAll(`.bar-cell`).forEach(bc => {
+        bc.classList.remove('active-room-box', 'edit-room-box');
+      });
+    }
+    // ใส่ class ให้ bar ใหม่ — ทำผ่าน querySelectorAll ครั้งเดียว
+    if (curBar >= 0) {
+      // หา bar-cell ที่ตรงกับ curBar: beat-cell แรกใน bar คือ curBar*4
+      const refCell = _beatCellMap.get(curBar * 4);
+      if (refCell) {
+        refCell.forEach(c => {
+          const bc = c.parentElement;
+          if (bc && bc.classList.contains('bar-cell')) {
+            bc.classList.remove('active-room-box', 'edit-room-box');
+            if (state.isMultiSelectMode) { /* ไม่ใส่ */ }
+            else if (editMode) bc.classList.add('edit-room-box');
+            else bc.classList.add('active-room-box');
+          }
+        });
+      }
+    }
+  } else if (prevBar === curBar && curBar >= 0 && _patchPrevEditMode !== editMode) {
+    const refCell = _beatCellMap.get(curBar * 4);
+    if (refCell) {
+      refCell.forEach(c => {
+        const bc = c.parentElement;
+        if (bc && bc.classList.contains('bar-cell')) {
+          bc.classList.remove('active-room-box', 'edit-room-box');
+          if (!state.isMultiSelectMode) {
+            if (editMode) bc.classList.add('edit-room-box');
+            else bc.classList.add('active-room-box');
+          }
+        }
+      });
+    }
+  }
+
+  // repaint dirty beat-cells
+  dirtyBeats.forEach(globalBeat => {
+    const cells = _beatCellMap.get(globalBeat);
+    if (!cells) return;
+    cells.forEach(cell => {
+      const h = cell.dataset.hand;
+      const gongIdx = state.notes[h][globalBeat];
+      // content
+      if (gongIdx != null) {
+        cell.innerHTML = noteHTML(gongIdx);
+        cell.className = 'beat-cell ' + noteRange(gongIdx);
+      } else {
+        cell.textContent = '−';
+        cell.className = 'beat-cell empty';
+      }
+      // cursor class
+      if (h === hand && globalBeat === cursorBeat && editMode) {
+        cell.classList.add('edit-box');
+      }
+    });
+  });
+
+  // snapshot สำหรับรอบถัดไป
+  _patchPrevNotes = { right: state.notes.right.slice(), left: state.notes.left.slice() };
+  _patchPrevCursor = cursorBeat;
+  _patchPrevHand = hand;
+  _patchPrevEditMode = editMode;
+
+  // scroll cursor ให้ตามเสมอ
+  if (cursorBeat >= 0) {
+    requestAnimationFrame(() => {
+      const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
+      if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+    });
+  }
+}
+
+// เรียก patchNotation แทน renderNotation ใน hot-path (commitChord, insertRest, deleteAtCursor, moveCursorBy)
+// renderNotation ยังคงถูกเรียกสำหรับการเปลี่ยนโครงสร้าง (insertLine, deleteLine, undo/redo ฯลฯ)
+
 function renderNotation() {
+  // invalidate patch snapshot เสมอเมื่อ rebuild เต็ม
+  _patchPrevNotes = null; _patchPrevCursor = -2; _patchPrevHand = null; _patchPrevEditMode = null;
+  _secStatsFP = null; // force updateSectionStats ให้ rebuild DOM ท่อนใหม่
+
   updateSectionStats(); // ต้องเรียกก่อน render เพื่อ build sectionLineMap และ stats UI
   const root = document.getElementById('notation');
   const frag = document.createDocumentFragment();
@@ -2875,6 +3228,12 @@ function renderNotation() {
   // rebuild lookup caches
   _buildBeatCellMap();
   _currentBeatCells = [];
+
+  // อัพเดต patch snapshot หลัง rebuild เต็ม
+  _patchPrevNotes = { right: state.notes.right.slice(), left: state.notes.left.slice() };
+  _patchPrevCursor = state.cursorBeat;
+  _patchPrevHand = state.hand;
+  _patchPrevEditMode = state.isEditMode;
 }
 
 function getPlaybackSequence() {
@@ -5819,7 +6178,235 @@ const PDF_IMPORT = (() => {
 document.addEventListener('DOMContentLoaded', () => {
   init();
   PDF_IMPORT.init();
+  initQuickNav();
 });
+
+// ===== AssistiveTouch-style Quick Nav =====
+function initQuickNav() {
+  const nav            = document.getElementById('quickNav');
+  const navBtn         = document.getElementById('qnavToggle');
+  const icon           = document.getElementById('qnavIcon');
+  const tooltip        = document.getElementById('qnavTooltip');
+  const overlay        = document.getElementById('gongPopupOverlay');
+  const popupStage     = document.getElementById('gongPopupStage');
+  const closeBtn       = document.getElementById('gongPopupClose');
+  const stageContainer = document.getElementById('gongStageContainer');
+
+  let isOpen = false;
+
+  // ── ตำแหน่ง ──────────────────────────────────────────────────────
+  const POS_KEY  = 'qnavPos2'; // key ใหม่ (format เปลี่ยน)
+  const BTN_SIZE = 52;         // ต้องตรงกับ CSS width/height
+  const EDGE_GAP = 10;         // ระยะห่างจากขอบจอหลัง snap
+
+  // อ่าน/บันทึกตำแหน่งแบบ normalized (0–1) เพื่อรองรับหลาย resolution
+  function loadPos() {
+    try {
+      const s = JSON.parse(localStorage.getItem(POS_KEY));
+      if (s && typeof s.rx === 'number') return s;
+    } catch(e) {}
+    return null;
+  }
+  function savePos() {
+    try {
+      const cx = parseFloat(nav.style.left) + BTN_SIZE / 2;
+      const cy = parseFloat(nav.style.top)  + BTN_SIZE / 2;
+      localStorage.setItem(POS_KEY, JSON.stringify({
+        rx: cx / window.innerWidth,
+        ry: cy / window.innerHeight
+      }));
+    } catch(e) {}
+  }
+
+  // set ตำแหน่ง top-left ของ nav element พร้อม clamp
+  function applyPos(x, y) {
+    const maxX = window.innerWidth  - BTN_SIZE - EDGE_GAP;
+    const maxY = window.innerHeight - BTN_SIZE - EDGE_GAP;
+    x = Math.max(EDGE_GAP, Math.min(maxX, x));
+    y = Math.max(EDGE_GAP, Math.min(maxY, y));
+    nav.style.right     = 'auto';
+    nav.style.transform = 'none';
+    nav.style.left      = x + 'px';
+    nav.style.top       = y + 'px';
+    updateTooltipSide(x);
+  }
+
+  // snap ปุ่มเข้าขอบซ้ายหรือขวาที่ใกล้ที่สุด (เหมือน AssistiveTouch)
+  function snapToEdge() {
+    const x = parseFloat(nav.style.left) || 0;
+    const cx = x + BTN_SIZE / 2;
+    const snapX = cx < window.innerWidth / 2
+      ? EDGE_GAP
+      : window.innerWidth - BTN_SIZE - EDGE_GAP;
+    // เปิด transition ก่อน snap แล้วปิดทีหลัง
+    nav.classList.remove('at-dragging');
+    applyPos(snapX, parseFloat(nav.style.top) || 0);
+    savePos();
+  }
+
+  // tooltip อยู่ซ้ายหรือขวาของปุ่ม ขึ้นอยู่กับตำแหน่งปุ่ม
+  function updateTooltipSide(x) {
+    const cx = x + BTN_SIZE / 2;
+    if (cx < window.innerWidth / 2) {
+      tooltip.classList.add('tip-right');
+    } else {
+      tooltip.classList.remove('tip-right');
+    }
+  }
+
+  // ตั้งตำแหน่งเริ่มต้น
+  function initPos() {
+    const saved = loadPos();
+    if (saved) {
+      const x = saved.rx * window.innerWidth  - BTN_SIZE / 2;
+      const y = saved.ry * window.innerHeight - BTN_SIZE / 2;
+      nav.classList.add('at-dragging'); // ปิด transition ชั่วคราว
+      applyPos(x, y);
+      requestAnimationFrame(() => nav.classList.remove('at-dragging'));
+    } else {
+      // default: ขวากลาง
+      nav.classList.add('at-dragging');
+      applyPos(
+        window.innerWidth  - BTN_SIZE - EDGE_GAP,
+        window.innerHeight / 2 - BTN_SIZE / 2
+      );
+      requestAnimationFrame(() => nav.classList.remove('at-dragging'));
+    }
+  }
+
+  // ── Idle Fade (จางหลัง 4 วินาที ไม่มีกิจกรรม) ─────────────────────
+  let _idleTimer = null;
+  function resetIdle() {
+    nav.classList.remove('at-idle');
+    clearTimeout(_idleTimer);
+    _idleTimer = setTimeout(() => {
+      if (!isOpen) nav.classList.add('at-idle');
+    }, 4000);
+  }
+  resetIdle();
+  // ทุกครั้งที่มีปฏิสัมพันธ์กับหน้าเว็บ → reset idle
+  ['pointerdown','keydown','scroll'].forEach(ev =>
+    document.addEventListener(ev, resetIdle, { passive: true })
+  );
+
+  // ── Drag ──────────────────────────────────────────────────────────
+  let _dragging  = false;
+  let _startPX   = 0, _startPY   = 0;   // pointer start
+  let _origLeft  = 0, _origTop   = 0;   // nav start
+  let _dragMoved = false;
+  let _pointerId = null;
+
+  navBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    navBtn.setPointerCapture(e.pointerId);
+    _pointerId = e.pointerId;
+    _startPX   = e.clientX;
+    _startPY   = e.clientY;
+    _origLeft  = parseFloat(nav.style.left)  || 0;
+    _origTop   = parseFloat(nav.style.top)   || 0;
+    _dragging  = true;
+    _dragMoved = false;
+    nav.classList.add('at-dragging');
+    nav.classList.remove('at-idle');
+    clearTimeout(_idleTimer);
+  });
+
+  navBtn.addEventListener('pointermove', (e) => {
+    if (!_dragging) return;
+    const dx = e.clientX - _startPX;
+    const dy = e.clientY - _startPY;
+    if (!_dragMoved && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) _dragMoved = true;
+    if (_dragMoved) applyPos(_origLeft + dx, _origTop + dy);
+  });
+
+  navBtn.addEventListener('pointerup', (e) => {
+    if (!_dragging) return;
+    _dragging = false;
+    if (_dragMoved) {
+      // snap ไปขอบ แล้วบันทึก
+      snapToEdge();
+    } else {
+      // เป็นการ tap → toggle popup
+      nav.classList.remove('at-dragging');
+      isOpen ? closePopup() : openPopup();
+    }
+    resetIdle();
+  });
+
+  navBtn.addEventListener('pointercancel', () => {
+    if (!_dragging) return;
+    _dragging = false;
+    if (_dragMoved) snapToEdge();
+    else nav.classList.remove('at-dragging');
+    resetIdle();
+  });
+
+  // reposition + re-snap เมื่อ resize
+  window.addEventListener('resize', () => {
+    if (!nav.style.left || nav.style.left === 'auto') return;
+    // snap ใหม่ตาม ratio เดิม
+    const saved = loadPos();
+    if (saved) {
+      nav.classList.add('at-dragging');
+      applyPos(
+        saved.rx * window.innerWidth  - BTN_SIZE / 2,
+        saved.ry * window.innerHeight - BTN_SIZE / 2
+      );
+      requestAnimationFrame(() => nav.classList.remove('at-dragging'));
+    } else {
+      snapToEdge();
+    }
+  });
+
+  // ── Popup ─────────────────────────────────────────────────────────
+  function openPopup() {
+    if (isOpen) return;
+    isOpen = true;
+
+    const stage = document.getElementById('gong-stage');
+    if (stage) popupStage.appendChild(stage);
+
+    overlay.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 320);
+
+    icon.textContent    = '✏️';
+    tooltip.textContent = 'กลับบรรทัดที่บันทึก';
+    navBtn.classList.add('return-mode');
+    nav.classList.remove('at-idle');
+  }
+
+  function closePopup() {
+    if (!isOpen) return;
+    isOpen = false;
+
+    const stage = popupStage.querySelector('#gong-stage');
+    if (stage && stageContainer) stageContainer.appendChild(stage);
+
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+
+    setTimeout(() => { layoutGongs(); _rebuildGongCache(); }, 50);
+
+    icon.textContent    = '👁️';
+    tooltip.textContent = 'ไปดูวงฆ้อง';
+    navBtn.classList.remove('return-mode');
+
+    const cursorCell = document.querySelector('.beat-cell.cursor');
+    if (cursorCell) {
+      cursorCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      cursorCell.style.outline = '3px solid var(--gold)';
+      setTimeout(() => { cursorCell.style.outline = ''; }, 800);
+    }
+    resetIdle();
+  }
+
+  closeBtn.addEventListener('click', closePopup);
+
+  // ── Init ──────────────────────────────────────────────────────────
+  requestAnimationFrame(initPos);
+}
 </script>
 </body>
 </html>
