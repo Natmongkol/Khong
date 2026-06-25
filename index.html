@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -298,45 +299,99 @@ section.panel h3 {
   .line-action-bar { width: 24px; }
 }
 
-/* --- Drag Handle สำหรับลากสลับบรรทัด --- */
-.line-drag-handle {
-  display: flex; align-items: center; justify-content: center;
-  background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px;
-  color: var(--muted); font-size: 14px; padding: 6px 0; cursor: grab;
-  transition: all 0.15s; font-family: inherit; user-select: none; -webkit-user-select: none;
-  touch-action: none; line-height: 1; letter-spacing: 1px;
-}
-.line-drag-handle:hover { background: var(--panel-3); color: var(--accent); border-color: var(--accent); }
-.line-drag-handle:active { cursor: grabbing; }
+/* --- vak-label ลากได้ (AssistiveTouch-style) --- */
+/* ซ่อน drag-handle เดิม — ตัวเลขบรรทัดทำหน้าที่แทน */
+.line-drag-handle { display: none !important; }
 
-@media (max-width: 400px) {
-  .line-drag-handle { font-size: 12px; padding: 5px 0; }
+/* vak-label: กดค้างเพื่อลาก */
+.vak-label {
+  touch-action: none;
+  cursor: grab;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.12s;
 }
+.vak-label:active { cursor: grabbing; }
 
+/* ขณะลาก: label เดิมจางลงเป็น placeholder */
+.line-wrap.dragging .vak-label {
+  cursor: grabbing;
+  background: rgba(91,158,255,0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(91,158,255,0.45);
+}
 .line-wrap.dragging {
-  opacity: 0.4;
-  z-index: 50;
+  opacity: 0.38;
   position: relative;
-  outline: 2px dashed var(--accent);
-  outline-offset: 4px;
-  border-radius: 12px;
-  background: rgba(91,158,255,0.05);
+  outline: 2px dashed rgba(91,158,255,0.5);
+  outline-offset: 3px;
+  border-radius: 10px;
 }
-.line-wrap.dragging .line-drag-handle {
-  cursor: grabbing; background: var(--accent); color: var(--bg); border-color: var(--accent);
-  box-shadow: 0 4px 16px rgba(91,158,255,0.4);
-}
+
+/* Ghost ที่ลอยตามนิ้ว */
 .line-wrap.drag-ghost {
   position: fixed; left: 0; top: 0; pointer-events: none; z-index: 9999;
-  opacity: 0.96; box-shadow: 0 12px 32px rgba(0,0,0,0.5), 0 0 0 2.5px var(--accent);
+  opacity: 0.94;
+  box-shadow: 0 14px 36px rgba(0,0,0,0.55), 0 0 0 2px var(--accent);
   border-radius: 12px; background: var(--bg-2);
   outline: none;
-  transform: scale(1.02);
+  transform: scale(1.025);
   transition: none;
+  /* ทำให้เห็นแค่ส่วน vak-label-col เป็นแถบแคบๆ เพื่อไม่บังเนื้อหา */
+  width: auto !important;
+  overflow: hidden;
 }
-.line-wrap.drop-target-above { box-shadow: inset 0 3px 0 0 var(--accent); }
-.line-wrap.drop-target-below { box-shadow: inset 0 -3px 0 0 var(--accent); }
-.line-wrap.drag-anim { transition: transform 0.18s ease; }
+/* ghost แสดงเฉพาะ vak-label-col + เส้นบาง */
+.line-wrap.drag-ghost .bar-rows-container { opacity: 0.22; }
+.line-wrap.drag-ghost .vak-label {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(91,158,255,0.5);
+}
+.line-wrap.drag-ghost .line-play-btn { color: var(--bg); border-color: rgba(0,0,0,0.2); background: rgba(0,0,0,0.15); }
+
+/* indicator เส้นสีฟ้าแสดงจุด drop */
+.line-wrap.drop-target-above { box-shadow: inset 0 4px 0 0 var(--accent), 0 -1px 8px rgba(91,158,255,0.3); }
+.line-wrap.drop-target-below { box-shadow: inset 0 -4px 0 0 var(--accent), 0 1px 8px rgba(91,158,255,0.3); }
+.line-wrap.drag-anim { transition: transform 0.15s cubic-bezier(0.4,0,0.2,1); }
+
+/* vak-label: แสดง cursor grab + feedback ขณะกด */
+.vak-label {
+  cursor: grab;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.1s;
+  -webkit-user-select: none; user-select: none;
+}
+
+/* long-press ring: pulse ขณะรอ drag */
+.vak-label.vak-pressing {
+  background: rgba(91,158,255,0.22) !important;
+  box-shadow: 0 0 0 3px rgba(91,158,255,0.5);
+  animation: vak-pulse 0.22s ease-out;
+}
+@keyframes vak-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(91,158,255,0.7); }
+  100% { box-shadow: 0 0 0 3px rgba(91,158,255,0.5); }
+}
+
+/* drag-indicator: เส้นขีดแนวนอนบน line-num แทน ⠿ */
+.line-num::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  opacity: 0.35;
+  margin: 0 auto 4px;
+  box-shadow: 0 -4px 0 currentColor, 0 4px 0 currentColor;
+}
+.vak-label:hover .line-num::before,
+.vak-label.vak-pressing .line-num::before {
+  opacity: 0.75;
+}
+
+@media (max-width: 400px) {
+  .vak-label { cursor: default; }
+}
 
 
 .line-play-btn { cursor: pointer; color: var(--green); font-size: 10px; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; border-radius: 50%; transition: all 0.15s; background: rgba(63,223,142,0.1); margin-bottom: 4px; padding-left: 2px; border: 1px solid rgba(63,223,142,0.3); }
@@ -1934,6 +1989,13 @@ function unlockAudio() {
 window.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
 window.addEventListener('click', unlockAudio, { once: true });
 
+// หยุดเล่นเมื่อ tab/app เข้า background — ป้องกัน AudioContext ค้างและ visual desync บน iOS/Android
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && typeof stopPlayback === 'function' && state.isPlaying) {
+    stopPlayback(true);
+  }
+});
+
 let _cachedNoiseBuf = null;
 let _cachedNoiseSR  = 0;   // sampleRate ที่ใช้สร้าง buffer — แยกออกมาเพราะ AudioBuffer.sampleRate เป็น read-only
 function _getNoiseBuf(ctx) {
@@ -2499,8 +2561,8 @@ function moveLineUp(lineIndex) {
     if (tempRep) state.repeats[L1] = tempRep; else delete state.repeats[L1];
 
     const tempLen = state.lineLengths[L2];
-    if (state.lineLengths[L1]) state.lineLengths[L2] = state.lineLengths[L1]; else delete state.lineLengths[L2];
-    if (tempLen) state.lineLengths[L1] = tempLen; else delete state.lineLengths[L1];
+    if (state.lineLengths[L1] !== undefined) state.lineLengths[L2] = state.lineLengths[L1]; else delete state.lineLengths[L2];
+    if (tempLen !== undefined) state.lineLengths[L1] = tempLen; else delete state.lineLengths[L1];
 
     // อัพเดต cursor
     if (state.cursorBeat >= startAbove && state.cursorBeat < startAbove + 32) state.cursorBeat += 32;
@@ -2558,8 +2620,8 @@ function moveLineUpNoUndo(lineIndex) {
     if (tempRep) state.repeats[L1] = tempRep; else delete state.repeats[L1];
 
     const tempLen = state.lineLengths[L2];
-    if (state.lineLengths[L1]) state.lineLengths[L2] = state.lineLengths[L1]; else delete state.lineLengths[L2];
-    if (tempLen) state.lineLengths[L1] = tempLen; else delete state.lineLengths[L1];
+    if (state.lineLengths[L1] !== undefined) state.lineLengths[L2] = state.lineLengths[L1]; else delete state.lineLengths[L2];
+    if (tempLen !== undefined) state.lineLengths[L1] = tempLen; else delete state.lineLengths[L1];
 
     if (state.cursorBeat >= startAbove && state.cursorBeat < startAbove + 32) state.cursorBeat += 32;
     else if (state.cursorBeat >= startAbove + 32 && state.cursorBeat < startAbove + 64) state.cursorBeat -= 32;
@@ -2573,6 +2635,15 @@ function moveLineDownNoUndo(lineIndex) {
 
 // fingerprint ล่าสุดที่ updateSectionStats ใช้ build DOM — ป้องกัน rebuild ซ้ำ
 let _secStatsFP = null;
+
+// escape HTML สำหรับ inject เข้า innerHTML โดยตรง
+function _escHTML(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
 
 function updateSectionStats() {
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
@@ -2603,229 +2674,367 @@ function updateSectionStats() {
       
       const statDiv = document.createElement('div');
       statDiv.className = 'stat dynamic-sec-stat';
-      statDiv.innerHTML = `<span class="label" title="${secName}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${secName}</span><span class="value">${numLines} บรรทัด</span>`;
+      statDiv.innerHTML = `<span class="label" title="${_escHTML(secName)}" style="max-width:140px; overflow:hidden; text-overflow:ellipsis;">${_escHTML(secName)}</span><span class="value">${numLines} บรรทัด</span>`;
       statsContainer.appendChild(statDiv);
   }
 }
 
-// ===== Drag Handle: ลากสลับตำแหน่งบรรทัด =====
+// ===== Drag บรรทัด: AssistiveTouch-style =====
+// แตะสั้น = tap (click เดินหน้าไปที่ play btn), กดค้าง/ขยับแนวตั้ง = drag สลับตำแหน่ง
 let _dragState = null;
+const _DRAG_LP_MS  = 200;   // long-press threshold (ms)
+const _DRAG_PX     = 6;     // move threshold (px) ที่ถือว่าเป็น drag ทันที
+const _ASCROLL_EDGE = 68;
+const _ASCROLL_SPD  = 18;
 
-function initLineDrag(handle, lineWrap, lineIndex) {
-  handle.addEventListener('pointerdown', (e) => {
-    e.preventDefault(); e.stopPropagation();
-    if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
-
-    const root = document.getElementById('notation');
-    const wraps = Array.from(root.querySelectorAll('.line-wrap'));
-    const rect = lineWrap.getBoundingClientRect();
-    const rootRect = root.getBoundingClientRect();
-
-    // สร้าง ghost element ลอยตามนิ้ว/เมาส์
-    const ghost = lineWrap.cloneNode(true);
-    ghost.classList.add('drag-ghost');
-    ghost.style.width = rect.width + 'px';
-    ghost.style.height = rect.height + 'px';
-    ghost.style.left = rect.left + 'px';
-    ghost.style.top = rect.top + 'px';
-    document.body.appendChild(ghost);
-
-    // ทำให้ original โปร่งใส แต่ยังกินพื้นที่ (placeholder)
-    lineWrap.classList.add('dragging');
-
-    _dragState = {
-      handle, lineWrap, root, wraps,
-      startY: e.clientY,
-      origTop: rect.top,
-      ghost,
-      currentIndex: lineIndex,   // index ปัจจุบันใน DOM (0-based)
-      origIndex: lineIndex,
-      placeholderHeight: rect.height,
-      lastClientY: e.clientY,
-      autoScrollId: null,
-    };
-
-    document.body.style.userSelect = 'none';
-
-    window.addEventListener('pointermove', onLineDragMove);
-    window.addEventListener('pointerup', onLineDragEnd);
-    window.addEventListener('pointercancel', onLineDragEnd);
-  });
-}
-
-function onLineDragMove(e) {
-  if (!_dragState) return;
-  const ds = _dragState;
-  ds.lastClientY = e.clientY;
-  const dy = e.clientY - ds.startY;
-
-  // ขยับ ghost ตามนิ้ว/เมาส์ — จำกัดไม่ให้ลอยเลยเข้าไปในพื้นที่ touch keyboard
-  let ghostTop = ds.origTop + dy;
-  const bottomLimit = getDragBottomLimit();
-  const maxTop = bottomLimit - ds.placeholderHeight;
-  if (ghostTop > maxTop) ghostTop = maxTop;
-  ds.ghost.style.top = ghostTop + 'px';
-
-  updateDragReorder(ds);
-  startAutoScroll(ds);
-}
-
-// auto-scroll หน้าจอเมื่อลากใกล้ขอบบน/ล่างของ viewport
-const AUTO_SCROLL_EDGE = 70;   // px จากขอบจอที่เริ่ม auto-scroll
-const AUTO_SCROLL_MAX_SPEED = 18; // px ต่อเฟรม
-
-// คืนค่าขอบล่างของพื้นที่ที่ลากได้จริง (หักความสูง touch keyboard ที่บังอยู่ ถ้ามี)
-function getDragBottomLimit() {
+// ── helper ──────────────────────────────────────────────────────────────────
+function _dragBottomLimit() {
   const kb = document.getElementById('touchKeyboard');
-  if (kb) {
-    const rect = kb.getBoundingClientRect();
-    // เช็คว่าคีย์บอร์ดแสดงอยู่จริง (มีความสูง และอยู่ในจอ ไม่ใช่ collapsed/ซ่อน)
-    if (rect.height > 0 && rect.top < window.innerHeight) {
-      return rect.top;
-    }
-  }
+  if (kb) { const r = kb.getBoundingClientRect(); if (r.height > 0 && r.top < window.innerHeight) return r.top; }
   return window.innerHeight;
 }
 
-function startAutoScroll(ds) {
-  if (ds.autoScrollId) return; // loop ทำงานอยู่แล้ว
+// drop-indicator: เส้นสีฟ้าแสดงว่าจะวางตรงไหน
+let _dropIndicator = null;
+function _showDropIndicator(refWrap, above) {
+  if (!_dropIndicator) {
+    _dropIndicator = document.createElement('div');
+    _dropIndicator.style.cssText = [
+      'position:fixed;left:0;right:0;height:3px;pointer-events:none;z-index:9998',
+      'background:var(--accent,#5b9eff)',
+      'box-shadow:0 0 8px 2px rgba(91,158,255,0.55)',
+      'border-radius:2px','transition:top 0.1s ease'
+    ].join(';');
+    document.body.appendChild(_dropIndicator);
+  }
+  const r = refWrap.getBoundingClientRect();
+  _dropIndicator.style.top = (above ? r.top - 2 : r.bottom - 1) + 'px';
+}
+function _hideDropIndicator() {
+  if (_dropIndicator) { _dropIndicator.remove(); _dropIndicator = null; }
+}
 
-  const tick = () => {
-    if (!_dragState || _dragState !== ds) { ds.autoScrollId = null; return; }
+// ── initLineDrag (ผูก events กับ vak-label แต่ละบรรทัด) ──────────────────────
+function initLineDrag(handle, lineWrap, lineIndex) {
+  let _lpTimer    = null;   // long-press setTimeout id
+  let _pointerId  = null;
+  let _startY     = 0;
+  let _startX     = 0;
+  let _lastY      = 0;
+  let _moved      = false;  // ขยับเกิน threshold แล้ว
+  let _active     = false;  // drag กำลังทำงาน
 
-    const y = ds.lastClientY;
-    const vh = getDragBottomLimit();
-    let speed = 0;
+  // visual: pulse ring ขณะรอ long-press
+  function _ring(on) { handle.classList.toggle('vak-pressing', on); }
 
-    if (y < AUTO_SCROLL_EDGE) {
-      const ratio = (AUTO_SCROLL_EDGE - y) / AUTO_SCROLL_EDGE;
-      speed = -Math.ceil(ratio * AUTO_SCROLL_MAX_SPEED);
-    } else if (y > vh - AUTO_SCROLL_EDGE) {
-      const ratio = (y - (vh - AUTO_SCROLL_EDGE)) / AUTO_SCROLL_EDGE;
-      speed = Math.ceil(ratio * AUTO_SCROLL_MAX_SPEED);
-    }
+  // ── เริ่ม drag ──────────────────────────────────────────────────
+  function _beginDrag(clientY) {
+    if (_dragState) return;
+    _ring(false);
+    if (chordTimer !== null) { clearTimeout(chordTimer); commitChord(); }
 
-    if (speed !== 0) {
-      const before = window.scrollY;
-      window.scrollBy(0, speed);
-      const scrolled = window.scrollY - before;
-      if (scrolled !== 0) {
-        // ghost เป็น position:fixed (อิงกับ viewport) และ clientY ของนิ้ว/เมาส์ไม่เปลี่ยนตอน scroll
-        // จึงไม่ต้องขยับ ghost — แค่ให้คำนวณลำดับใหม่ตาม rect ของบรรทัดอื่นที่เลื่อนไปแล้ว
-        updateDragReorder(ds);
+    const root = document.getElementById('notation');
+    const rect = lineWrap.getBoundingClientRect();
+
+    // ghost: set style โดยตรง (ไม่ += cssText เพราะจะ corrupt inherited style)
+    const ghost = lineWrap.cloneNode(true);
+    ghost.classList.add('drag-ghost');
+    // วัด vak-label-col จริงก่อน append ghost
+    // เพื่อให้ ghost กว้างพอดีกับ vak-label-col — ไม่ตัดเนื้อหาด้วย overflow:hidden
+    const lc = lineWrap.querySelector('.vak-label-col');
+    const lcRect = lc ? lc.getBoundingClientRect() : null;
+    // ghost width = ระยะจากขอบซ้าย lineWrap ถึงขอบขวา vak-label-col + padding เล็กน้อย
+    // ใช้ lcRect.right - rect.left แทนการบวก magic number
+    const gw = lcRect ? (lcRect.right - rect.left + 8) : 68;
+    // ตั้ง position:fixed ทีละ property เพื่อไม่ให้ถูก cascade ทับ
+    ghost.style.position = 'fixed';
+    ghost.style.left     = rect.left + 'px';
+    ghost.style.top      = rect.top  + 'px';
+    ghost.style.width    = gw + 'px';
+    ghost.style.height   = rect.height + 'px';
+    ghost.style.margin   = '0';
+    ghost.style.zIndex   = '9999';
+    ghost.style.pointerEvents = 'none';
+    document.body.appendChild(ghost);
+
+    lineWrap.classList.add('dragging');
+    document.body.style.userSelect = 'none';
+    _active = true;
+    if (navigator.vibrate) navigator.vibrate(20);
+
+    _dragState = {
+      root, lineWrap, ghost,
+      startY: clientY, origTop: rect.top,
+      placeholderH: rect.height,
+      lastY: clientY,
+      fromIdx: lineIndex,
+      curIdx: lineIndex,
+      rafId: null,
+    };
+    // แสดงเลขบน ghost ทันทีที่เริ่ม drag
+    _liveNums(_dragState);
+    _startAutoScroll();
+  }
+
+  // ── cleanup — ทำงานเสมอไม่ว่าจะ cancel หรือ pointerup ──────────
+  function _end(cancelled) {
+    if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+    _ring(false);
+    // detach global listeners — ใช้ตัวแปร ref เพราะ _detachGlobal อยู่ใน closure ด้านล่าง
+    _detachGlobal();
+    _pointerId = null;
+
+    if (!_active) return;
+    _active = false;
+
+    // ล้าง ghost ที่ค้างอยู่ทั้งหมดในกรณี race condition
+    document.querySelectorAll('.drag-ghost').forEach(g => g.remove());
+    document.querySelectorAll('.line-wrap.dragging')
+      .forEach(w => w.classList.remove('dragging'));
+    document.querySelectorAll('.drop-target-above,.drop-target-below')
+      .forEach(w => w.classList.remove('drop-target-above','drop-target-below'));
+
+    _stopAutoScroll();
+    _hideDropIndicator();
+    document.body.style.userSelect = '';
+
+    if (!_dragState) { renderNotation(); return; }
+
+    const ds = _dragState;
+    _dragState = null;
+
+    if (cancelled) { renderNotation(); return; }
+
+    // ── คำนวณ from / to จาก dataset.lineNum (state space) ทั้งคู่ ──────────────
+    // DOM index ที่ _reorder เปลี่ยนระหว่าง drag ≠ state index เมื่อมี insert/delete
+    // วิธีที่ถูกต้อง: อ่าน state index จาก dataset.lineNum ของ element เอง
+    // และใช้ dataset.lineNum ของ DOM neighbors เพื่อ derive ตำแหน่งปลายทาง
+    const root = ds.root;
+    const wraps = Array.from(root.querySelectorAll('.line-wrap:not(.drag-ghost)'));
+
+    // from: state index ของบรรทัดที่ถูกลาก (dataset.lineNum ไม่เปลี่ยนระหว่าง drag)
+    const from = parseInt(ds.lineWrap.dataset.lineNum, 10) - 1; // 0-based
+
+    // to: derive จาก dataset.lineNum ของ DOM neighbors หลัง drop
+    // ใช้ neighbor แทน DOM index เพราะ DOM index ≠ state index เมื่อมี insert/delete
+    const myDOMIdx = wraps.indexOf(ds.lineWrap);
+    const totalLines = Math.round(state.numBars / BARS_PER_VAK);
+    let to;
+    if (myDOMIdx <= 0) {
+      // หัวสุดของ DOM → ย้ายไป state index 0
+      to = 0;
+    } else if (myDOMIdx >= wraps.length - 1) {
+      // ท้ายสุดของ DOM → ย้ายไป state index สุดท้าย
+      to = totalLines - 1;
+    } else {
+      // อยู่กลาง: อ่าน state index จาก neighbor ที่ dataset.lineNum ยังถูกต้อง
+      const prevStateIdx = parseInt(wraps[myDOMIdx - 1].dataset.lineNum, 10) - 1;
+      const nextStateIdx = parseInt(wraps[myDOMIdx + 1].dataset.lineNum, 10) - 1;
+      if (from < myDOMIdx) {
+        // เลื่อนลง (from อยู่ก่อน myDOMIdx ใน DOM เดิม) → วางหลัง prev neighbor
+        to = prevStateIdx;
+      } else {
+        // เลื่อนขึ้น (from อยู่หลัง myDOMIdx ใน DOM เดิม) → วางก่อน next neighbor
+        to = nextStateIdx;
       }
     }
 
-    ds.autoScrollId = requestAnimationFrame(tick);
-  };
-  ds.autoScrollId = requestAnimationFrame(tick);
-}
+    to = Math.max(0, Math.min(totalLines - 1, to));
 
-function stopAutoScroll(ds) {
-  if (ds.autoScrollId) {
-    cancelAnimationFrame(ds.autoScrollId);
-    ds.autoScrollId = null;
+    if (from !== to) {
+      moveLineToPosition(from, to);
+      showToast(`ย้ายบรรทัดที่ ${from + 1} → ตำแหน่งที่ ${to + 1}`, 'success');
+    } else {
+      renderNotation();
+    }
+  }
+
+  // ── pointer events ─────────────────────────────────────────────
+  // ออกแบบแบบ "global capture" — move/up/cancel ผูกกับ window
+  // เพื่อให้ ghost ตามนิ้วแม้ขยับออกนอก element
+
+  handle.addEventListener('pointerdown', (e) => {
+    if (e.button && e.button !== 0) return;
+    if (_active || _dragState) return;
+    // ถ้า tap ลงบน .line-play-btn (อยู่ใน handle) → ปล่อยให้ click ทำงาน ไม่ติด ring
+    if (e.target.closest('.line-play-btn')) return;
+
+    _pointerId = e.pointerId;
+    _startY = _lastY = e.clientY;
+    _startX = e.clientX;
+    _moved  = false;
+
+    _ring(true);
+
+    _lpTimer = setTimeout(() => {
+      _lpTimer = null;
+      if (!_moved) _beginDrag(_lastY);
+    }, _DRAG_LP_MS);
+
+    // ผูก move/up/cancel บน window ทันที (global capture)
+    window.addEventListener('pointermove',   _onMove, { passive: false });
+    window.addEventListener('pointerup',     _onUp);
+    window.addEventListener('pointercancel', _onCancel);
+
+    e.stopPropagation();
+    // ไม่ preventDefault บน pointerdown → ให้ click .line-play-btn ทำงาน
+  }, { passive: true });
+
+  function _onMove(e) {
+    if (e.pointerId !== _pointerId) return;
+    _lastY = e.clientY;
+
+    const ady = Math.abs(e.clientY - _startY);
+    const dx  = Math.abs(e.clientX - _startX);
+
+    if (!_active) {
+      if (ady > _DRAG_PX && ady > dx) {
+        _moved = true;
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+        _beginDrag(e.clientY);
+      } else if (dx > _DRAG_PX * 2 && dx > ady) {
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+        _ring(false);
+      }
+      return;
+    }
+
+    if (!_dragState) return;
+    const ds = _dragState;
+    ds.lastY = e.clientY;
+
+    // ขยับ ghost ตามนิ้ว
+    const newTop = Math.max(0, Math.min(
+      _dragBottomLimit() - ds.placeholderH,
+      ds.origTop + (e.clientY - ds.startY)
+    ));
+    ds.ghost.style.top = newTop + 'px';
+
+    _reorder(ds);
+    e.preventDefault();
+  }
+
+  function _onUp(e) {
+    if (e.pointerId !== _pointerId) return;
+    _end(false);
+  }
+
+  function _onCancel(e) {
+    if (e.pointerId !== _pointerId) return;
+    _end(true);
+  }
+
+  function _detachGlobal() {
+    window.removeEventListener('pointermove',   _onMove);
+    window.removeEventListener('pointerup',     _onUp);
+    window.removeEventListener('pointercancel', _onCancel);
   }
 }
 
-// คำนวณว่าตำแหน่งปัจจุบันของ ghost ควรสลับลำดับกับบรรทัดอื่นหรือไม่ (ใช้ทั้งจาก pointermove และ auto-scroll)
-function updateDragReorder(ds) {
-  // หาตำแหน่ง center ของ ghost
-  const ghostRect = ds.ghost.getBoundingClientRect();
-  const ghostCenter = ghostRect.top + ghostRect.height / 2;
+// ── auto-scroll ────────────────────────────────────────────────────
+const _REORDER_THROTTLE_MS = 80; // reorder DOM ไม่เกินทุก 80ms แม้ scroll เร็ว
+function _startAutoScroll() {
+  if (!_dragState || _dragState.rafId) return;
+  let _lastReorderAt = 0;
+  const tick = (now) => {
+    if (!_dragState) return;
+    const y  = _dragState.lastY;
+    const vh = _dragBottomLimit();
+    let spd  = 0;
+    if (y < _ASCROLL_EDGE)        spd = -Math.ceil(((_ASCROLL_EDGE - y) / _ASCROLL_EDGE) * _ASCROLL_SPD);
+    else if (y > vh-_ASCROLL_EDGE) spd =  Math.ceil(((y-(vh-_ASCROLL_EDGE))/_ASCROLL_EDGE) * _ASCROLL_SPD);
+    if (spd !== 0) {
+      const before = window.scrollY;
+      window.scrollBy(0, spd);
+      // throttle _reorder: scroll ทุก frame แต่ reorder DOM ไม่เกินทุก 80ms
+      if (window.scrollY !== before && _dragState && (now - _lastReorderAt >= _REORDER_THROTTLE_MS)) {
+        _lastReorderAt = now;
+        _reorder(_dragState);
+      }
+    }
+    _dragState.rafId = requestAnimationFrame(tick);
+  };
+  _dragState.rafId = requestAnimationFrame(tick);
+}
+function _stopAutoScroll() {
+  if (_dragState && _dragState.rafId) { cancelAnimationFrame(_dragState.rafId); _dragState.rafId = null; }
+}
 
-  // คำนวณว่าควรอยู่ตำแหน่งไหนใน list ปัจจุบัน
-  const root = ds.root;
-  const wraps = Array.from(root.querySelectorAll('.line-wrap'));
-  let targetIndex = ds.currentIndex;
+// ── reorder: ย้าย DOM placeholder + update live line numbers ──────
+function _reorder(ds) {
+  const ghostCY  = parseFloat(ds.ghost.style.top) + ds.placeholderH / 2;
+  const root     = ds.root;
+  // query ทุกครั้ง เพราะ DOM อาจเปลี่ยนแล้ว
+  const wraps    = Array.from(root.querySelectorAll('.line-wrap:not(.drag-ghost)'));
+  const myDOMIdx = wraps.indexOf(ds.lineWrap);
 
+  // หา targetDOMIdx: บรรทัดที่ ghostCenter ควรอยู่ก่อนหน้า
+  let targetDOMIdx = myDOMIdx;
   for (let i = 0; i < wraps.length; i++) {
     if (wraps[i] === ds.lineWrap) continue;
-    const r = wraps[i].getBoundingClientRect();
+    const r   = wraps[i].getBoundingClientRect();
     const mid = r.top + r.height / 2;
-    const wrapIndex = wraps.indexOf(ds.lineWrap);
-
-    if (i < wrapIndex && ghostCenter < mid) { targetIndex = i; break; }
-    if (i > wrapIndex && ghostCenter > mid) { targetIndex = i; }
+    if (i < myDOMIdx && ghostCY < mid) { targetDOMIdx = i; break; }
+    if (i > myDOMIdx && ghostCY > mid) { targetDOMIdx = i; }
   }
 
-  if (targetIndex !== ds.currentIndex) {
-    // ย้าย DOM node ของ lineWrap (placeholder) ไปตำแหน่งใหม่ พร้อม animation
-    const wrapsBefore = Array.from(root.querySelectorAll('.line-wrap'));
-    wrapsBefore.forEach(w => { if (w !== ds.lineWrap) w.classList.add('drag-anim'); });
+  // clear indicators ก่อน
+  wraps.forEach(w => w.classList.remove('drop-target-above','drop-target-below'));
+  _hideDropIndicator();
 
-    if (targetIndex > ds.currentIndex) {
-      const ref = wrapsBefore[targetIndex];
-      root.insertBefore(ds.lineWrap, ref.nextSibling);
+  if (targetDOMIdx !== myDOMIdx) {
+    // แสดง drop indicator
+    if (targetDOMIdx < myDOMIdx) {
+      _showDropIndicator(wraps[targetDOMIdx], true);
     } else {
-      const ref = wrapsBefore[targetIndex];
+      _showDropIndicator(wraps[targetDOMIdx], false);
+    }
+
+    // ย้าย placeholder พร้อม transition บรรทัดอื่น
+    wraps.forEach(w => { if (w !== ds.lineWrap) w.classList.add('drag-anim'); });
+    const ref = wraps[targetDOMIdx];
+    if (targetDOMIdx > myDOMIdx) {
+      root.insertBefore(ds.lineWrap, ref.nextSibling || null);
+    } else {
       root.insertBefore(ds.lineWrap, ref);
     }
+    ds.curIdx = targetDOMIdx;
 
-    ds.currentIndex = targetIndex;
-    updateLiveLineNumbers(ds);
-
-    requestAnimationFrame(() => {
-      root.querySelectorAll('.line-wrap.drag-anim').forEach(w => w.classList.remove('drag-anim'));
-    });
+    requestAnimationFrame(() =>
+      root.querySelectorAll('.line-wrap.drag-anim').forEach(w => w.classList.remove('drag-anim'))
+    );
   }
+
+  // อัพเดตเลขหลัง insertBefore เพื่อให้สะท้อน DOM order ที่เปลี่ยนแล้ว
+  _liveNums(ds);
 }
 
-// คำนวณและอัพเดตเลขบรรทัด (relative ต่อท่อน) แบบเรียลไทม์ตามลำดับ DOM ปัจจุบันขณะลาก
-// ใช้ data-line-num เดิมของแต่ละ wrap เพื่ออ้างอิงว่าบรรทัดนั้นมี "หัวท่อน" (section) หรือไม่
-function updateLiveLineNumbers(ds) {
-  const root = ds.root;
-  const wraps = Array.from(root.querySelectorAll('.line-wrap'));
+function _liveNums(ds) {
+  const wraps = Array.from(ds.root.querySelectorAll('.line-wrap:not(.drag-ghost)'));
+  let secStartIdx = 0;
+  let myDisplayNum = 1;
 
-  let currentSecStart = 1;
-  wraps.forEach((w, idx) => {
-    const origLineNum = parseInt(w.dataset.lineNum, 10);
-    if (state.sections && state.sections[origLineNum] !== undefined) {
-      currentSecStart = idx + 1;
-    }
-    const displayNum = idx + 1 - currentSecStart + 1;
+  wraps.forEach((w, i) => {
+    const origLn = parseInt(w.dataset.lineNum, 10);
+    if (state.sections && state.sections[origLn] !== undefined) secStartIdx = i;
+    const displayNum = i - secStartIdx + 1;
+
+    // อัพเดตเลขทุกบรรทัด (รวม placeholder ที่กำลังลาก)
     const numEl = w.querySelector('.line-num');
     if (numEl) numEl.textContent = displayNum;
 
-    // อัพเดต max ของช่อง "กลับต้นไปบรรทัดที่" ให้ตรงกับตำแหน่งใหม่ชั่วคราวระหว่างลาก
     const repInp = w.querySelector('.repeat-target-input');
     if (repInp) {
       repInp.max = displayNum;
       if (parseInt(repInp.value, 10) > displayNum) repInp.value = displayNum;
     }
+
+    if (w === ds.lineWrap) myDisplayNum = displayNum;
   });
 
-  // อัพเดตเลขบน ghost ให้ตรงกับตำแหน่งใหม่ของบรรทัดที่กำลังลาก
+  // ghost แสดงเลขเดียวกับ placeholder (ตำแหน่งที่จะถูกวาง)
   const ghostNumEl = ds.ghost.querySelector('.line-num');
-  const draggedNumEl = ds.lineWrap.querySelector('.line-num');
-  if (ghostNumEl && draggedNumEl) ghostNumEl.textContent = draggedNumEl.textContent;
-}
-
-function onLineDragEnd(e) {
-  if (!_dragState) return;
-  const ds = _dragState;
-
-  window.removeEventListener('pointermove', onLineDragMove);
-  window.removeEventListener('pointerup', onLineDragEnd);
-  window.removeEventListener('pointercancel', onLineDragEnd);
-  stopAutoScroll(ds);
-
-  document.body.style.userSelect = '';
-  ds.ghost.remove();
-  ds.lineWrap.classList.remove('dragging');
-
-  const fromIndex = ds.origIndex;
-  const toIndex = ds.currentIndex;
-
-  _dragState = null;
-
-  if (fromIndex !== toIndex) {
-    moveLineToPosition(fromIndex, toIndex);
-    showToast(`ย้ายบรรทัดที่ ${fromIndex + 1} ไปยังตำแหน่งที่ ${toIndex + 1}`, 'success');
-  } else {
-    // re-render เพื่อให้เลขบรรทัด/ลำดับ DOM ถูกต้องตาม state เดิม
-    renderNotation();
-  }
+  if (ghostNumEl) ghostNumEl.textContent = myDisplayNum;
 }
 
 // ===== patchNotation: อัพเดตเฉพาะ beat-cells ที่เปลี่ยนแปลง + cursor =====
@@ -2876,11 +3085,16 @@ function patchNotation() {
   const prevBar = _patchPrevCursor >= 0 ? Math.floor(_patchPrevCursor / 4) : -1;
   const curBar  = cursorBeat >= 0 ? Math.floor(cursorBeat / 4) : -1;
   if (prevBar !== curBar) {
-    // ลบ class จาก bar เก่า
+    // ลบ class จาก bar เก่า — ใช้ _beatCellMap แทน querySelectorAll ทั้งหน้า
     if (prevBar >= 0) {
-      document.querySelectorAll(`.bar-cell`).forEach(bc => {
-        bc.classList.remove('active-room-box', 'edit-room-box');
-      });
+      const prevRef = _beatCellMap.get(prevBar * 4);
+      if (prevRef) {
+        prevRef.forEach(c => {
+          const bc = c.parentElement;
+          if (bc && bc.classList.contains('bar-cell'))
+            bc.classList.remove('active-room-box', 'edit-room-box');
+        });
+      }
     }
     // ใส่ class ให้ bar ใหม่ — ทำผ่าน querySelectorAll ครั้งเดียว
     if (curBar >= 0) {
@@ -2937,15 +3151,19 @@ function patchNotation() {
   });
 
   // snapshot สำหรับรอบถัดไป
-  _patchPrevNotes = { right: state.notes.right.slice(), left: state.notes.left.slice() };
+  // clone notes เฉพาะเมื่อมี note เปลี่ยนจริง — cursor เดินคนเดียวไม่ต้อง clone
+  if (dirtyBeats.size > 0) {
+    _patchPrevNotes = { right: state.notes.right.slice(), left: state.notes.left.slice() };
+  }
   _patchPrevCursor = cursorBeat;
   _patchPrevHand = hand;
   _patchPrevEditMode = editMode;
 
-  // scroll cursor ให้ตามเสมอ
+  // scroll cursor ให้ตามเสมอ — อ่านจาก _beatCellMap แทน querySelector ทั้ง DOM
   if (cursorBeat >= 0) {
     requestAnimationFrame(() => {
-      const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
+      const cells = _beatCellMap && _beatCellMap.get(cursorBeat);
+      const cursorEl = cells && cells.find(c => c.dataset.hand === hand && (c.classList.contains('edit-box') || c.parentElement?.classList.contains('active-room-box')));
       if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     });
   }
@@ -2990,14 +3208,14 @@ function renderNotation() {
        const secName = state.sections[lineNum];
        if (state._editingSection === lineNum) {
            secHeader.innerHTML = `
-              <input type="text" class="sec-input" id="secInp-${lineNum}" value="${secName}" placeholder="ระบุชื่อท่อน...">
+              <input type="text" class="sec-input" id="secInp-${lineNum}" value="${_escHTML(secName)}" placeholder="ระบุชื่อท่อน...">
               <button class="btn-sec save-sec">บันทึก</button>
               <button class="btn-sec cancel-sec">ยกเลิก</button>
            `;
            setTimeout(() => { const inp = document.getElementById(`secInp-${lineNum}`); if (inp) { inp.focus(); inp.select(); } }, 10);
        } else {
            secHeader.innerHTML = `
-              <div class="sec-title">${secName}</div>
+              <div class="sec-title">${_escHTML(secName)}</div>
               <button class="btn-sec edit-sec">แก้ไขชื่อ</button>
               <button class="btn-sec del-sec">ลบ</button>
               <button class="btn-sec play-sec">เล่นท่อนนี้</button>
@@ -3077,10 +3295,10 @@ function renderNotation() {
     lineActionBar.appendChild(insBtn);
     lineActionBar.appendChild(delBtn);
 
-    initLineDrag(dragHandle, lineWrap, line);
+    initLineDrag(vakLabel, lineWrap, line);
 
     vakLabelCol.appendChild(vakLabel);
-    vakLabelCol.appendChild(dragHandle);
+    // dragHandle ซ่อนผ่าน CSS แล้ว — ไม่ append
     pair.appendChild(vakLabelCol);
     
     const rowsContainer = document.createElement('div'); 
@@ -3476,8 +3694,8 @@ function scheduler() {
   if (!state.isPlaying) return; const ctx = ac(); 
   const lookahead = 25.0; const scheduleAheadTime = 0.15; 
   
+  const currentBeatDur = 60 / state.bpm; // bpm ไม่เปลี่ยนระหว่าง loop — คำนวณครั้งเดียว
   while (currentStep < playbackSeq.length && nextNoteTime < ctx.currentTime + scheduleAheadTime) {
-      const currentBeatDur = 60 / state.bpm;
       scheduleBeat(currentStep, nextNoteTime); 
       nextNoteTime += currentBeatDur; 
       currentStep++;
@@ -4418,8 +4636,14 @@ function applyImport(data, silent = false) {
   state.selectedLine = null;
   
   if (data.notes) {
-    state.notes.right = Array.isArray(data.notes.right) ? data.notes.right.slice() : [];
-    state.notes.left = Array.isArray(data.notes.left) ? data.notes.left.slice() : [];
+    const maxIdx = getActiveInst().numGongs - 1;
+    // clamp note indices ให้อยู่ใน range ของ instrument ปัจจุบัน
+    // ป้องกัน inst.display[idx] / inst.freqs[idx] เป็น undefined เมื่อ import ข้าม instrument
+    const clampNotes = (arr) => Array.isArray(arr)
+      ? arr.map(v => (v == null ? null : (Number.isInteger(v) && v >= 0 && v <= maxIdx) ? v : null))
+      : [];
+    state.notes.right = clampNotes(data.notes.right);
+    state.notes.left  = clampNotes(data.notes.left);
   }
   
   state.cursorBeat = 0; ensureCapacity(); renderNotation();
@@ -4433,7 +4657,9 @@ function appendNewVak() {
   ensureCapacity(); state.cursorBeat = currentVak * BARS_PER_VAK * BEATS_PER_BAR;
   renderNotation(); showToast('เพิ่มวรรคใหม่แล้ว', 'success');
   requestAnimationFrame(() => {
-    const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
+    // ใช้ _beatCellMap แทน querySelector scan ทั้ง DOM — สอดคล้องกับ patchNotation
+    const cells = _beatCellMap && _beatCellMap.get(state.cursorBeat);
+    const cursorEl = cells && cells.find(c => c.dataset.hand === state.hand);
     if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   });
 }
@@ -5057,6 +5283,7 @@ function init() {
       window.removeEventListener('mouseup', onDragEnd);
       window.removeEventListener('touchmove', onDragMove);
       window.removeEventListener('touchend', onDragEnd);
+      window.removeEventListener('touchcancel', onDragEnd);
     }
 
     seekbar.addEventListener('mousedown', (e) => {
@@ -5072,6 +5299,9 @@ function init() {
       onDragMove(e);
       window.addEventListener('touchmove', onDragMove, { passive: true });
       window.addEventListener('touchend', onDragEnd);
+      // touchcancel: iOS ยิงแทน touchend เมื่อ system gesture interrupt (เช่น swipe Control Center)
+      // ถ้าไม่จับ — listener ค้างบน window และ isDragging ไม่ถูก reset
+      window.addEventListener('touchcancel', onDragEnd);
     }, { passive: true });
 
     // แสดง section markers + labels เมื่อเปิด focus mode
@@ -5472,7 +5702,7 @@ function init() {
         state.cursorBeat = clickedBar * 4; 
         state.hand = hand;
         state.isEditMode = true;
-        renderNotation();
+        patchNotation(); // เปลี่ยนแค่ cursor/editMode — โครงสร้าง DOM ไม่เปลี่ยน
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellEditMenu'));
         lastTap.time = 0; 
@@ -5480,7 +5710,7 @@ function init() {
         state.cursorBeat = beat; 
         state.hand = hand;
         state.isEditMode = false;
-        renderNotation();
+        patchNotation(); // เปลี่ยนแค่ cursor — โครงสร้าง DOM ไม่เปลี่ยน
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellActionMenu'));
         lastTap = { time: now, beat, hand };
