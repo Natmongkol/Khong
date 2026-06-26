@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -143,6 +142,7 @@ section.panel h3 {
 .btn.danger { border-color: var(--red); color: var(--red); }
 .btn.danger:hover:not(:disabled) { background: rgba(255,94,122,0.12); }
 #undoBtn:hover:not(:disabled), #redoBtn:hover:not(:disabled) { border-color: var(--purple); color: var(--purple); }
+.btn-icon { padding: 6px 10px; font-size: 14px; line-height: 1; min-width: 32px; text-align: center; }
 
 .toggle {
   display: inline-flex; align-items: center; gap: 8px;
@@ -899,14 +899,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   #qnavToggle { width: 46px; height: 46px; font-size: 22px; }
 }
 
-.save-panel { padding: 16px 20px; background: rgba(63,223,142,0.05); border-bottom: 1px solid rgba(63,223,142,0.2); }
+.save-panel { padding: 8px 20px; background: rgba(63,223,142,0.05); border-bottom: 1px solid rgba(63,223,142,0.2); }
 @media (max-width: 600px) { .save-panel { padding: 14px 16px; } }
 .save-panel-title { font-size: 11px; font-weight: 700; color: var(--green); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
 .btn.save-now { background: var(--green); border-color: var(--green); color: var(--bg); font-weight: 700; }
 .btn.save-now:hover:not(:disabled) { background: #5af0a8; border-color: #5af0a8; }
 .btn.save-file { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
 .btn.save-file:hover:not(:disabled) { background: #6fb0ff; border-color: #6fb0ff; }
-.save-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.save-actions { display: flex; gap: 6px; align-items: center; margin-left: auto; }
 .autosave-status { font-size: 11px; color: var(--muted); }
 .save-info-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
 .save-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
@@ -1169,17 +1169,14 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   </div>
 
   <div class="save-panel" style="margin-bottom: 20px; border-radius: 12px;">
-    <div class="save-panel-title">
-      สถานะการบันทึกข้อมูล
-      <span class="autosave-status" id="autosaveStatus">—</span>
-    </div>
-    <div class="save-info-row">
+    <div class="save-panel-row">
       <span class="save-badge ls" id="saveBadge">localStorage</span>
       <span class="save-file-name" id="saveFileName">—</span>
-    </div>
-    <div class="save-actions">
-      <button class="btn save-now" id="saveNowBtn">💾 Save ตอนนี้</button>
-      <button class="btn save-file" id="saveFileBtn" style="display:none">📂 Save ทับไฟล์</button>
+      <span class="autosave-status" id="autosaveStatus">—</span>
+      <div class="save-actions">
+        <button class="btn save-now" id="saveNowBtn">💾 Save</button>
+        <button class="btn save-file" id="saveFileBtn" style="display:none">📂 Save ทับไฟล์</button>
+      </div>
     </div>
   </div>
 
@@ -1189,51 +1186,55 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
     
     <div class="controls" style="margin-bottom: 12px;">
       <div class="control-group" style="width: 100%; border-right: none;">
-        <span class="control-label">ชื่อเพลง</span>
-        <input type="text" id="songName" class="song-input" placeholder="เพลงไม่มีชื่อ (Untitled)" autocomplete="off">
+        <input type="text" id="songName" class="song-input" placeholder="ชื่อเพลง..." autocomplete="off">
       </div>
     </div>
     
     <div class="controls" style="margin-bottom: 16px;">
-      <div class="control-group">
-        <span class="control-label">Tempo</span>
-        <input type="number" id="bpm" class="tempo-input" min="30" max="300" value="200" inputmode="numeric">
+      <div class="control-group" style="border:none; padding:0; gap: 10px;">
+        <input type="number" id="bpm" class="tempo-input" min="30" max="300" value="200" inputmode="numeric" title="Tempo (BPM)">
         <span class="control-label">bpm</span>
-      </div>
-      <div class="control-group">
-        <span class="control-label">บรรทัดทั้งหมด</span>
-        <input type="number" id="numVak" class="tempo-input" min="1" value="1" inputmode="numeric">
+        <span class="control-label" style="color:var(--border); font-size:14px;">|</span>
+        <input type="number" id="numVak" class="tempo-input" min="1" value="1" inputmode="numeric" title="บรรทัดทั้งหมด">
+        <span class="control-label">บรรทัด</span>
       </div>
     </div>
     
     <div class="controls">
-      <div class="control-group" style="border:none; padding:0; width:100%; gap: 10px;">
-        <button class="toggle on" id="recordToggle" role="switch" aria-checked="true" aria-label="เปิด/ปิดโหมดบันทึก">
+      <div class="control-group" style="border:none; padding:0; width:100%; gap: 8px; flex-wrap: wrap;">
+        <!-- Record toggle — ไม่มี label -->
+        <button class="toggle on" id="recordToggle" role="switch" aria-checked="true" aria-label="เปิด/ปิดโหมดบันทึก" title="Record">
           <span class="toggle-track"><span class="toggle-knob"></span></span>
-          <span class="toggle-label">Record</span>
         </button>
-        <button class="btn primary" id="playBtn" style="margin-left: auto;" aria-label="เล่นเพลง">▶ เล่น</button>
-        <button class="btn" id="stopBtn" aria-label="หยุดเล่น">■ หยุด</button>
-        <label class="toggle" style="margin-left: 4px; cursor: pointer;">
+
+        <!-- Play / Stop -->
+        <button class="btn btn-icon primary" id="playBtn" aria-label="เล่นเพลง" title="เล่น">▶</button>
+        <button class="btn btn-icon" id="stopBtn" aria-label="หยุดเล่น" title="หยุด">■</button>
+
+        <!-- Auto-scroll -->
+        <label class="toggle" style="cursor: pointer;" title="เลื่อนอัตโนมัติ">
           <input type="checkbox" id="autoScrollToggle" checked style="accent-color: var(--accent); margin:0;">
-          <span style="font-size: 11px; color: var(--muted); margin-left: 4px; font-weight: 600;">เลื่อนอัตโนมัติ</span>
+          <span style="font-size: 10px; color: var(--muted); margin-left: 2px; font-weight: 600;">เลื่อน</span>
         </label>
-        
-        <button class="btn" id="undoBtn" disabled aria-label="ย้อนกลับ" style="margin-left: 4px;">↩ ย้อนกลับ</button>
-        <button class="btn" id="redoBtn" disabled aria-label="ถัดไป">↻ ถัดไป</button>
-        <button class="btn danger" id="clearBtn" aria-label="ล้างทั้งหมด">✕ ล้างทั้งหมด</button>
-        
-        <div class="dropdown" style="border-left: 1px solid var(--border); padding-left: 10px; margin-left: 2px;">
-          <button class="btn" id="importMainBtn">⬇ นำเข้า ▾</button>
+
+        <!-- Undo / Redo -->
+        <button class="btn btn-icon" id="undoBtn" disabled aria-label="ย้อนกลับ" title="ย้อนกลับ">↩</button>
+        <button class="btn btn-icon" id="redoBtn" disabled aria-label="ถัดไป" title="ถัดไป">↻</button>
+
+        <!-- Clear -->
+        <button class="btn btn-icon danger" id="clearBtn" aria-label="ล้างทั้งหมด" title="ล้างทั้งหมด">✕</button>
+
+        <!-- Import / Export dropdowns -->
+        <div class="dropdown" style="margin-left: auto;">
+          <button class="btn btn-icon" id="importMainBtn" title="นำเข้า">⬇ นำเข้า ▾</button>
           <div class="dropdown-menu" id="importMenu">
             <button class="dropdown-item" id="importJsonBtn">📄 ไฟล์โปรเจกต์ (.JSON)</button>
             <button class="dropdown-item" id="importTxtBtn">📝 ไฟล์ข้อความ (.TXT)</button>
             <button class="dropdown-item" id="importPdfBtn">📥 ตารางโน้ตจาก .PDF</button>
           </div>
         </div>
-
         <div class="dropdown">
-          <button class="btn export-btn" id="exportMainBtn">⬆ ส่งออก ▾</button>
+          <button class="btn btn-icon export-btn" id="exportMainBtn" title="ส่งออก">⬆ ส่งออก ▾</button>
           <div class="dropdown-menu" id="exportMenu">
             <button class="dropdown-item" id="exportMenuMp3">🎵 ไฟล์เสียง (.MP3)</button>
             <button class="dropdown-item" id="exportMenuJson">📄 ไฟล์โปรเจกต์ (.JSON)</button>
@@ -1275,8 +1276,7 @@ footer { padding: 20px; border-top: 1px solid var(--border); text-align: center;
   <div class="section-spacer"></div>
 
   <section class="panel">
-    <h2>Notation</h2>
-    <h3 id="notationSubtitle">ทางฆ้องวงใหญ่ · 4 จังหวะ ต่อ ห้อง</h3>
+    <h3 id="notationSubtitle" style="margin:0 0 12px;">ทางฆ้องวงใหญ่</h3>
     <div class="playback-bar-wrap"><div class="playback-bar-fill" id="playbackBar"></div></div>
     <div style="height:10px"></div>
     <div class="notation-wrapper">
@@ -1720,7 +1720,7 @@ function switchInstrument(instId) {
     if (sel && sel.value !== instId) sel.value = instId;
     
     document.getElementById('instPanelTitle').textContent = `${getActiveInst().name} · ${getActiveInst().numGongs} ลูก`;
-    document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name} · 4 จังหวะ ต่อ ห้อง`;
+    document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name}`;
     
     // ปุ่มทัชคีย์บอร์ด สลับตามเครื่องที่เลือก
     document.getElementById('kb-kwy').style.display = (instId === 'kwy') ? 'block' : 'none';
@@ -1788,7 +1788,8 @@ function positionMenuForCell(menu) {
   if (pasteBtn) pasteBtn.disabled = !customClipboard || customClipboard.type === 'line';
 
   requestAnimationFrame(() => {
-      const cell = document.querySelector(`.beat-cell[data-beat="${state.cursorBeat}"][data-hand="${state.hand}"]`);
+      const _cells = _beatCellMap && _beatCellMap.get(state.cursorBeat);
+      const cell = _cells && _cells.find(c => c.dataset.hand === state.hand);
       if (!cell) return;
       
       const rect = cell.getBoundingClientRect();
@@ -1883,12 +1884,14 @@ function pushUndo() {
 
 function performUndo() {
   if (undoStack.length === 0) return;
+  if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; chordBuffer = { left: null, right: null }; }
   redoStack.push({
     instrument: currentInstrument,
     right: [...state.notes.right], left: [...state.notes.left],
     cursorBeat: state.cursorBeat, hand: state.hand, numBars: state.numBars,
     repeats: {...state.repeats}, sections: {...state.sections}, lineLengths: {...state.lineLengths}
   });
+  if (redoStack.length > MAX_UNDO) redoStack.shift();
   
   const snap = undoStack.pop();
   restoreSnapshot(snap);
@@ -1898,6 +1901,7 @@ function performUndo() {
 
 function performRedo() {
   if (redoStack.length === 0) return;
+  if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; chordBuffer = { left: null, right: null }; }
   undoStack.push({
     instrument: currentInstrument,
     right: [...state.notes.right], left: [...state.notes.left],
@@ -1912,6 +1916,7 @@ function performRedo() {
 }
 
 function restoreSnapshot(snap) {
+  if (chordTimer !== null) { clearTimeout(chordTimer); chordTimer = null; chordBuffer = { left: null, right: null }; }
   if (snap.instrument && snap.instrument !== currentInstrument) {
       currentInstrument = snap.instrument;
       
@@ -1919,7 +1924,7 @@ function restoreSnapshot(snap) {
       if (sel && sel.value !== snap.instrument) sel.value = snap.instrument;
 
       document.getElementById('instPanelTitle').textContent = `${getActiveInst().name} · ${getActiveInst().numGongs} ลูก`;
-      document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name} · 4 จังหวะ ต่อ ห้อง`;
+      document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name}`;
       
       document.getElementById('kb-kwy').style.display = (snap.instrument === 'kwy') ? 'block' : 'none';
       document.getElementById('kb-kmwy').style.display = (snap.instrument === 'kmwy') ? 'block' : 'none';
@@ -1937,7 +1942,10 @@ function restoreSnapshot(snap) {
   state.selectedLine = null;
   state.isMultiSelectMode = false;
   if(state.selectedRooms) state.selectedRooms.clear();
+  state.isMultiLineMode = false;
+  state.selectedLines = new Set();
   document.getElementById('multiSelectActionMenu')?.classList.add('hidden');
+  document.getElementById('multiLineActionMenu')?.classList.add('hidden');
   hideCellMenus();
   
   ensureCapacity(); renderNotation();
@@ -1990,11 +1998,18 @@ window.addEventListener('touchstart', unlockAudio, { once: true, passive: true }
 window.addEventListener('click', unlockAudio, { once: true });
 
 // หยุดเล่นเมื่อ tab/app เข้า background — ป้องกัน AudioContext ค้างและ visual desync บน iOS/Android
+function _resetDragSideEffects() {
+  document.body.style.userSelect = '';
+}
+
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden && typeof stopPlayback === 'function' && state.isPlaying) {
-    stopPlayback(true);
+  if (document.hidden) {
+    if (typeof stopPlayback === 'function' && state.isPlaying) stopPlayback(true);
+    _resetDragSideEffects();
   }
 });
+
+window.addEventListener('pagehide', _resetDragSideEffects);
 
 let _cachedNoiseBuf = null;
 let _cachedNoiseSR  = 0;   // sampleRate ที่ใช้สร้าง buffer — แยกออกมาเพราะ AudioBuffer.sampleRate เป็น read-only
@@ -2098,7 +2113,13 @@ function renderGongs() {
 function layoutGongs() {
   const stage = document.getElementById('gong-stage');
   const w = stage.clientWidth; const h = stage.clientHeight;
-  if (w < 120 || h < 120) return;
+  if (w < 120 || h < 120) {
+    // stage ซ่อนอยู่ (อยู่ใน overlay ที่ยังไม่ active หรือ display:none)
+    // ตั้ง flag ไว้ — caller ที่รู้ว่า stage กำลังจะ show จะเรียก layoutGongs() อีกครั้งอยู่แล้ว
+    layoutGongs._pendingLayout = true;
+    return;
+  }
+  layoutGongs._pendingLayout = false;
 
   const inst = getActiveInst();
   const numGongs = inst.numGongs;
@@ -2185,7 +2206,17 @@ function layoutGongs() {
 }
 
 let resizeTimer;
-window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(layoutGongs, 120); });
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    layoutGongs();
+    // ถ้า stage ซ่อนอยู่ตอน resize (เช่น อยู่ใน overlay ที่ยังไม่ active)
+    // layoutGongs() จะตั้ง _pendingLayout แล้ว return — ลอง rAF อีกครั้งเมื่อ paint ถัดไป
+    if (layoutGongs._pendingLayout) {
+      requestAnimationFrame(() => { if (layoutGongs._pendingLayout) layoutGongs(); });
+    }
+  }, 120);
+});
 
 // debounced wrapper — ใช้กรณีไม่ต้องการ render ทันที (เช่น resize, scroll)
 let _renderTimer = null;
@@ -2260,7 +2291,8 @@ function advanceCursor() {
     ensureCapacity(); state.cursorBeat = t;
   } else { state.cursorBeat++; }
   requestAnimationFrame(() => {
-    const cursorEl = document.querySelector('.beat-cell.edit-box') || document.querySelector('.bar-cell.active-room-box');
+    const _cells = _beatCellMap && _beatCellMap.get(state.cursorBeat);
+    const cursorEl = _cells && _cells.find(c => c.dataset.hand === state.hand);
     if (cursorEl) cursorEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
   });
 }
@@ -3175,6 +3207,7 @@ function patchNotation() {
 function renderNotation() {
   // invalidate patch snapshot เสมอเมื่อ rebuild เต็ม
   _patchPrevNotes = null; _patchPrevCursor = -2; _patchPrevHand = null; _patchPrevEditMode = null;
+  _beatCellMap = null; // ป้องกัน patchNotation ใช้ map เก่าระหว่าง rebuild DOM
   _secStatsFP = null; // force updateSectionStats ให้ rebuild DOM ท่อนใหม่
 
   updateSectionStats(); // ต้องเรียกก่อน render เพื่อ build sectionLineMap และ stats UI
@@ -3828,7 +3861,8 @@ function stopPlayback(cutAudio = false) {
   if (!state.isPlaying && playbackActiveMasters.length === 0) return;
 
   state.isPlaying = false; state.currentBeat = -1; state.currentPlayingLine = null;
-  if (schedulerTimer) clearTimeout(schedulerTimer); if (playbackEndTimer) clearTimeout(playbackEndTimer);
+  if (schedulerTimer) { clearTimeout(schedulerTimer); schedulerTimer = null; }
+  if (playbackEndTimer) { clearTimeout(playbackEndTimer); playbackEndTimer = null; }
   playbackVisualTimers.forEach(clearTimeout); playbackVisualTimers = [];
 
   // หยุด animation เลื่อนหน้าจอ
@@ -4378,8 +4412,14 @@ async function exportMP3(customSeq = null, suffix = '') {
     a.download = fileName;
     a.style.display = 'none';
     document.body.appendChild(a);
-    a.click();
-    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+    try {
+      a.click();
+      setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 2000);
+    } catch (clickErr) {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      throw clickErr;
+    }
 
     setExportProgress(100, '✓ ดาวน์โหลดสำเร็จ!');
     await new Promise(r => setTimeout(r, 900));
@@ -4484,7 +4524,8 @@ async function executeImport(fileType) {
 async function processImportFile(file, handle) {
   const btn = document.getElementById('importMainBtn'); const name = file.name.toLowerCase(); const mime = (file.type || '').toLowerCase();
   const isJson  = name.endsWith('.json') || mime === 'application/json';
-  const isTxt   = name.endsWith('.txt')  || mime === 'text/plain'; 
+  const isTxt   = name.endsWith('.txt')  || mime === 'text/plain';
+  const originalBtnText = btn.textContent;
 
   try {
     btn.textContent = 'กำลังประมวลผล...'; btn.disabled = true;
@@ -4499,8 +4540,8 @@ async function processImportFile(file, handle) {
     else { showToast('ไม่รองรับไฟล์ประเภทนี้', 'error'); return; }
 
     applyTextImport(text); currentFileHandle = null; updateSaveUI();
-  } catch (err) { showToast('นำเข้าไม่สำเร็จ: ' + err.message, 'error'); } 
-  finally { btn.textContent = '⬇ นำเข้า ▾'; btn.disabled = false; }
+  } catch (err) { showToast('นำเข้าไม่สำเร็จ: ' + err.message, 'error'); }
+  finally { btn.textContent = originalBtnText; btn.disabled = false; }
 }
 
 function parseNotesFromText(text) {
@@ -4612,7 +4653,7 @@ function applyImport(data, silent = false) {
       if (sel && sel.value !== data.instrument) sel.value = data.instrument;
 
       document.getElementById('instPanelTitle').textContent = `${getActiveInst().name} · ${getActiveInst().numGongs} ลูก`;
-      document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name} · 4 จังหวะ ต่อ ห้อง`;
+      document.getElementById('notationSubtitle').textContent = `ทาง${getActiveInst().name}`;
       document.getElementById('kb-kwy').style.display = (data.instrument === 'kwy') ? 'block' : 'none';
       document.getElementById('kb-kmwy').style.display = (data.instrument === 'kmwy') ? 'block' : 'none';
       renderImeInfographic();
@@ -4858,7 +4899,11 @@ function renderImeInfographic() {
 }
 
 function init() {
-  ensureCapacity(); renderGongs(); renderNotation(); initTouchKeyboard(); initSaveSystem();
+  ensureCapacity();
+  try { renderGongs(); } catch(e) { console.error('renderGongs() failed:', e); showToast('โหลดหน้าตาฆ้องไม่สำเร็จ: ' + e.message, 'error'); }
+  try { renderNotation(); } catch(e) { console.error('renderNotation() failed:', e); showToast('โหลดโน้ตไม่สำเร็จ: ' + e.message, 'error'); }
+  try { initTouchKeyboard(); } catch(e) { console.error('initTouchKeyboard() failed:', e); showToast('โหลดคีย์บอร์ดไม่สำเร็จ: ' + e.message, 'error'); }
+  initSaveSystem();
   updatePageTitle(); 
   updateUndoUI(); 
   renderImeInfographic();
@@ -4875,7 +4920,7 @@ function init() {
   document.getElementById('numVak').addEventListener('change', (e) => { pushUndo(); state.numBars = Math.max(1, +e.target.value || 1) * BARS_PER_VAK; ensureCapacity(); renderNotation(); });
 
   const recTog = document.getElementById('recordToggle');
-  recTog.addEventListener('click', () => { state.isRecording = !state.isRecording; recTog.classList.toggle('on', state.isRecording); renderNotation(); });
+  recTog.addEventListener('click', () => { state.isRecording = !state.isRecording; recTog.classList.toggle('on', state.isRecording); recTog.setAttribute('aria-checked', state.isRecording); renderNotation(); });
 
   document.getElementById('playBtn').addEventListener('click', startPlayback);
   document.getElementById('stopBtn').addEventListener('click', () => stopPlayback(true));
@@ -5775,9 +5820,39 @@ function init() {
     const elDown = document.getElementById('tkModDown'); if (elDown) elDown.classList.toggle('active', arrowDownHeld);
   }
 
+  const _MODAL_ESCAPE_MAP = [
+    { modalId: 'clearConfirmModal',  cancelId: 'cancelClearBtn' },
+    { modalId: 'switchInstModal',    cancelId: 'cancelSwitchBtn' },
+    { modalId: 'playRangeModal',     cancelId: 'cancelPlayRangeBtn' },
+    { modalId: 'exportMp3Modal',     cancelId: null,
+      close: () => { if (!isExporting) document.getElementById('exportMp3Modal').classList.remove('show'); } },
+  ];
+
+  _MODAL_ESCAPE_MAP.forEach(({ modalId, cancelId, close }) => {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    modal.addEventListener('click', (e) => {
+      if (e.target !== modal) return;
+      if (close) close();
+      else document.getElementById(cancelId).click();
+    });
+  });
+
   window.addEventListener('keydown', (e) => {
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
     const code = e.code;
+
+    if (code === 'Escape') {
+      for (const { modalId, cancelId, close } of _MODAL_ESCAPE_MAP) {
+        const modal = document.getElementById(modalId);
+        if (modal && modal.classList.contains('show')) {
+          e.preventDefault();
+          if (close) close();
+          else document.getElementById(cancelId).click();
+          return;
+        }
+      }
+    }
     
     if (e.ctrlKey || e.metaKey) {
       if (code === 'KeyY' || (code === 'KeyZ' && e.shiftKey)) { e.preventDefault(); performRedo(); return; }
@@ -6623,7 +6698,8 @@ function initQuickNav() {
     tooltip.textContent = 'ไปดูวงฆ้อง';
     navBtn.classList.remove('return-mode');
 
-    const cursorCell = document.querySelector('.beat-cell.cursor');
+    const _cc = _beatCellMap && _beatCellMap.get(state.cursorBeat);
+    const cursorCell = _cc && _cc.find(c => c.dataset.hand === state.hand);
     if (cursorCell) {
       cursorCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
       cursorCell.style.outline = '3px solid var(--gold)';
