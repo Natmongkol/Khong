@@ -2,7 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#0a0e1a">
 <title>โน้ตดนตรีไทย ทำนองหลัก</title>
 
@@ -46,9 +46,16 @@
     </div>
   </div>
 
-  <section class="panel">
-    <h2>Controls</h2>
-    <h3>ควบคุมการเล่นและบันทึก</h3>
+  <section class="panel controls-panel">
+    <details class="controls-details">
+      <summary class="controls-summary">
+        <span class="controls-summary-copy">
+          <span class="controls-summary-title">ตั้งค่าเพลง</span>
+          <span class="controls-summary-subtitle">ควบคุมการเล่นและบันทึก</span>
+        </span>
+        <span class="controls-summary-action" aria-hidden="true"></span>
+      </summary>
+      <div class="controls-content">
 
     <div class="ctrl-toolbar">
 
@@ -74,7 +81,7 @@
       <div class="ctrl-block">
         <span class="ctrl-block-label">โครงสร้าง</span>
         <div class="ctrl-block-body">
-          <input type="number" id="numVak" class="tempo-input" min="1" value="1" inputmode="numeric" title="บรรทัดทั้งหมด">
+          <input type="number" id="numVak" class="tempo-input" min="1" max="1000" value="1" inputmode="numeric" title="บรรทัดทั้งหมด">
           <span class="control-label">บรรทัด</span>
         </div>
       </div>
@@ -142,6 +149,8 @@
       <div class="stat" style="display:none;"><span class="value" id="beatValue"></span></div>
       <div class="stat"><span class="label">โครงสร้างท่อน</span><span class="value" id="sectionCount">1 ท่อน</span></div>
     </div>
+      </div>
+    </details>
   </section>
 
   <div class="section-spacer"></div>
@@ -169,7 +178,7 @@
 
   <div class="section-spacer"></div>
 
-  <section class="panel">
+  <section class="panel notation-panel">
     <h3 id="notationSubtitle" style="margin:0 0 12px;">ทางฆ้องวงใหญ่</h3>
     <div class="record-mode-row" id="recordModeRow" style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
       <label for="recordModeSelect" style="font-size:13px; color:var(--muted); white-space:nowrap;">โหมดบันทึกโน้ต:</label>

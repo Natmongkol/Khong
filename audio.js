@@ -911,7 +911,7 @@ function hideExportProgress() {
   if (cancelBtn) cancelBtn.disabled = false;
 }
 
-async function exportMP3(customSeq = null, suffix = '') {
+async function exportMP3(customSeq = null) {
   if (isExporting) { showToast('กำลังสร้างไฟล์ MP3 อยู่ กรุณารอสักครู่...', 'error'); return; }
   if (!state.notes.right.some(n => n !== null) && !state.notes.left.some(n => n !== null)) {
     hideExportProgress();
@@ -1114,7 +1114,7 @@ async function exportMP3(customSeq = null, suffix = '') {
     throwIfMp3ExportCancelled();
 
     const safeName = getSafeFilename(state.songName);
-    const fileName = `${safeName}${suffix}_${new Date().toISOString().slice(0,16).replace(/[T:]/g,'-')}.mp3`;
+    const fileName = `${safeName}.mp3`;
     const blob = new Blob(mp3Data, { type: 'audio/mpeg' });
 
     const url = URL.createObjectURL(blob);

@@ -577,9 +577,8 @@ function renderNotation() {
            `;
            setTimeout(() => { const inp = document.getElementById(`secInp-${lineNum}`); if (inp) { inp.focus(); inp.select(); } }, 10);
        } else {
-           const sectionHeading = `${secTempoRate ? `${sectionTempoRateLabel(secTempoRate)} ` : ''}${secName}`;
            secHeader.innerHTML = `
-              <div class="sec-title">${_escHTML(sectionHeading)}</div>
+              <div class="sec-title">${_escHTML(secName)}</div>
               <button class="btn-sec edit-sec">แก้ไขชื่อ</button>
               <button class="btn-sec del-sec">ลบ</button>
               <button class="btn-sec play-sec">เล่นท่อนนี้</button>

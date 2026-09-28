@@ -66,8 +66,12 @@ function initTopControls() {
   });
   
   document.getElementById('numVak').addEventListener('change', (e) => {
-    const vaks = Math.max(1, Math.min(MAX_VAKS, Math.round(+e.target.value || 1)));
+    const parsed = Number(e.target.value);
+    const requestedVaks = Number.isFinite(parsed) ? Math.round(parsed) : 1;
+    const vaks = Math.max(1, Math.min(MAX_VAKS, requestedVaks));
+    if (requestedVaks > MAX_VAKS) showToast(`เพิ่มได้สูงสุด ${MAX_VAKS} วรรค เพื่อให้เว็บทำงานได้ปกติ`, 'error');
     e.target.value = vaks;
+    if (vaks === state.numBars / BARS_PER_VAK) return;
     pushUndo(); state.numBars = vaks * BARS_PER_VAK; ensureCapacity(); renderNotation();
   });
 
@@ -238,19 +242,7 @@ function initExportImportMenus() {
           const endLine   = sectionLineMap[eIdx - 1];
           const exportSeq = buildSequenceForRange(startLine, endLine);
           
-          let sName = (state.sections && state.sections[startLine]) ? state.sections[startLine] : `Part${sIdx}`;
-          let eName = (state.sections && state.sections[endLine])   ? state.sections[endLine]   : `Part${eIdx}`;
-          sName = sName.replace(/[\/\\?%*:|"<> ]/g, ''); 
-          eName = eName.replace(/[\/\\?%*:|"<> ]/g, '');
-          
-          let suffix = '';
-          if (sIdx === eIdx) {
-              suffix = `_(${sName})`;
-          } else {
-              suffix = `_(${sName}_ถึง_${eName})`;
-          }
-          
-          exportMP3(exportSeq, suffix);
+          exportMP3(exportSeq);
       } else {
           exportMP3(); 
       }

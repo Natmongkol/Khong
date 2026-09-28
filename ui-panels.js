@@ -24,9 +24,13 @@ function showToast(message, type = 'success') {
 }
 
 function hideCellMenus() {
-  document.getElementById('cellActionMenu')?.classList.add('hidden');
-  document.getElementById('cellEditMenu')?.classList.add('hidden');
-  document.getElementById('lineActionMenu')?.classList.add('hidden');
+  ['cellActionMenu', 'cellEditMenu', 'lineActionMenu'].forEach((id) => {
+    const menu = document.getElementById(id);
+    if (!menu) return;
+    // Invalidate pending animation-frame positioning so a menu cannot reopen after being closed.
+    menu._positionRequest = (menu._positionRequest || 0) + 1;
+    menu.classList.add('hidden');
+  });
   if (state.isMultiLineMode) {
     state.isMultiLineMode = false;
     state.selectedLines = new Set();
@@ -36,10 +40,14 @@ function hideCellMenus() {
 
 function positionMenuForCell(menu) {
   if (!menu || state.cursorBeat === -1) return;
+  const requestId = (menu._positionRequest || 0) + 1;
+  menu._positionRequest = requestId;
+  const expectedEditMode = state.isEditMode;
   const pasteBtn = document.getElementById('camPaste');
   if (pasteBtn) pasteBtn.disabled = !customClipboard || customClipboard.type === 'line';
 
   requestAnimationFrame(() => {
+      if (menu._positionRequest !== requestId || state.cursorBeat === -1 || state.isEditMode !== expectedEditMode) return;
       const _cells = _beatCellMap && _beatCellMap.get(state.cursorBeat);
       const cell = _cells && _cells.find(c => c.dataset.hand === state.hand);
       if (!cell) return;
@@ -80,10 +88,13 @@ function positionMenuForCell(menu) {
 function positionLineMenu(clientX, clientY) {
   const menu = document.getElementById('lineActionMenu');
   if (!menu) return;
+  const requestId = (menu._positionRequest || 0) + 1;
+  menu._positionRequest = requestId;
   const pasteBtn = document.getElementById('lamPaste');
   if (pasteBtn) pasteBtn.disabled = !customClipboard || customClipboard.type !== 'line';
 
   requestAnimationFrame(() => {
+      if (menu._positionRequest !== requestId) return;
       const menuWidth = menu.offsetWidth || 240;
       let menuX = clientX;
       

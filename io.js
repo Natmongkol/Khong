@@ -105,23 +105,17 @@ function exportPDF() {
   }
 
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
-  const songTitle = _escHTML((state.songName && state.songName.trim()) ? state.songName.trim() : 'ไม่มีชื่อเพลง');
-  let contentHTML = '';
-  let sectionLeadOpen = false;
-  let sectionLeadLines = 0;
+  const songTitle = _escHTML(getSafeFilename(state.songName));
+  let contentHTML = `<div class="line-pair"><div class="doc-title">${songTitle}</div>`;
 
   for (let line = 0; line < totalLines; line++) {
     const lineNum = line + 1;
 
+    if (line > 0 && line % 2 === 0) contentHTML += '</div><div class="line-pair">';
+
     const secName = (state.sections && state.sections[lineNum] !== undefined) ? state.sections[lineNum] : null;
     if (secName !== null) {
-      if (sectionLeadOpen) contentHTML += '</div>';
-      // Keep the title and the first three notation lines together on one page.
-      const tempoRate = state.sectionTempoRates && state.sectionTempoRates[lineNum];
-      const sectionHeading = `${tempoRate ? `${sectionTempoRateLabel(tempoRate)} ` : ''}${secName}`;
-      contentHTML += `<div class="section-lead"><div class="section-label">${_escHTML(sectionHeading)}</div>`;
-      sectionLeadOpen = true;
-      sectionLeadLines = 0;
+      contentHTML += `<div class="section-label">${_escHTML(secName)}</div>`;
     }
 
     const barsInThisLine = state.lineLengths[lineNum] !== undefined ? state.lineLengths[lineNum] : 8;
@@ -153,13 +147,17 @@ function exportPDF() {
         ${hasRepeat ? `<div class="repeat-label" style="width: ${tableWidth}%;">กลับต้น</div>` : ''}
       </div>
     `;
-
-    if (sectionLeadOpen && ++sectionLeadLines >= 3) {
-      contentHTML += '</div>';
-      sectionLeadOpen = false;
-    }
   }
-  if (sectionLeadOpen) contentHTML += '</div>';
+  if (totalLines % 2 === 1) {
+    const lastLineNum = totalLines;
+    const barsInLastLine = state.lineLengths[lastLineNum] !== undefined ? state.lineLengths[lastLineNum] : 8;
+    const emptyCells = Array.from({ length: barsInLastLine * 4 }, () => '<td class="nc"></td>').join('');
+    contentHTML += `<div class="line-block paired-empty" aria-hidden="true"><table class="notation-table"><tbody><tr>${emptyCells}</tr>${state.recordMode !== 'one' ? `<tr>${emptyCells}</tr>` : ''}</tbody></table></div>`;
+  }
+  contentHTML += '</div>';
+
+  const regularFontUrl = new URL('assets/fonts/THSarabunPSK-Regular.ttf', window.location.href).href;
+  const boldFontUrl = new URL('assets/fonts/THSarabunPSK-Bold.ttf', window.location.href).href;
 
   const printHTML = `<!DOCTYPE html>
 <html lang="th">
@@ -169,27 +167,28 @@ function exportPDF() {
 <title>${songTitle}</title> 
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  @font-face { font-family: 'TH SarabunPSK'; src: url('${regularFontUrl}') format('truetype'); font-style: normal; font-weight: 300 400; font-display: block; }
+  @font-face { font-family: 'TH SarabunPSK'; src: url('${boldFontUrl}') format('truetype'); font-style: normal; font-weight: 700 900; font-display: block; }
   @page {
     size: A4 portrait;
-    margin-top: 0; margin-bottom: 0.5in; margin-left: 0.5in; margin-right: 0.5in;
-    @bottom-right {
-      content: "หน้า " counter(page) " / " counter(pages);
-      font-family: 'Sarabun', sans-serif; font-size: 12px;
-    }
+    margin: 1cm;
   }
   body {
-    font-family: 'Sarabun', 'TH Sarabun New', 'Noto Sans Thai', serif;
+    font-family: 'TH SarabunPSK', sans-serif;
     background: #ffffff !important; color: #000000; font-size: 14px; line-height: 1.4;
   }
   @media screen {
     body { padding: 0.5in; max-width: 210mm; margin: 0 auto; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
   }
-  .doc-title { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 22px; letter-spacing: 0.01em; }
-  .section-lead { break-inside: avoid; page-break-inside: avoid; }
-  .section-label { font-size: 14px; font-weight: 700; margin-top: 18px; margin-bottom: 4px; text-align: left; }
-  .line-block { margin-bottom: 14px; page-break-inside: avoid; }
-  table.notation-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 13px; }
-  td.nc { border: none; text-align: center; padding: 0; height: 28px; vertical-align: middle; }
+  body { font-family: 'TH SarabunPSK', sans-serif; }
+  .print-document { width: 100%; }
+  .line-pair { display: block; break-inside: avoid; page-break-inside: avoid; }
+  .doc-title { text-align: center; font-size: 18px; font-weight: 700; margin-bottom: 22px; letter-spacing: 0; }
+  .section-label { font-size: 16px; font-weight: 700; margin-top: 18px; margin-bottom: 4px; text-align: left; }
+  .line-block { margin-bottom: 14px; break-inside: avoid; page-break-inside: avoid; }
+  .paired-empty { visibility: hidden; }
+  table.notation-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 16px; }
+  td.nc { border: none; text-align: center; padding: 0; height: 30px; vertical-align: middle; }
   .top-row td:first-child, .bot-row td:first-child { border-left: 1px solid #000; }
   .top-row td:last-child,  .bot-row td:last-child  { border-right: 1px solid #000; }
   .top-row td { border-top: 1px solid #000; border-bottom: 1px solid #000; }
@@ -197,11 +196,13 @@ function exportPDF() {
   td.nc.bar-end { border-right: 1px solid #000; }
   td.nc.empty-cell { background-color: #fafafa; border-top-color: #eee; border-bottom-color: #eee; }
   td.nc.empty-cell.bar-end { border-right-color: #eee; }
-  .note, .rest { display: inline-block; height: 14px; line-height: 14px; font-size: 13px; text-align: center; vertical-align: middle; }
+  .note, .rest { display: inline-block; height: 20px; line-height: 20px; font-size: 16px; font-weight: 300; text-align: center; vertical-align: middle; }
   .rest { color: #000; }
   .repeat-label { text-align: right; font-size: 12px; font-weight: 600; margin-top: 2px; padding-right: 2px; }
-  .print-actions { position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; z-index: 1000; width: 90%; max-width: 500px; }
-  .print-btn { flex: 1; background: #000; color: #fff; border: none; padding: 16px 20px; font-size: 20px; font-family: 'Sarabun', sans-serif; font-weight: 700; cursor: pointer; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: center; transition: transform 0.1s; }
+  .print-actions { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 1000; width: 90%; max-width: 500px; }
+  .print-buttons { display: flex; gap: 12px; }
+  .print-hint { font-size: 14px; text-align: center; color: #444; }
+  .print-btn { flex: 1; background: #000; color: #fff; border: none; padding: 16px 20px; font-size: 20px; font-family: 'TH SarabunPSK', sans-serif; font-weight: 700; cursor: pointer; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); text-align: center; transition: transform 0.1s; }
   .print-btn.close { background: #ff5e7a; }
   .print-btn:active { transform: scale(0.96); }
   .print-btn:hover { filter: brightness(1.2); }
@@ -210,23 +211,14 @@ function exportPDF() {
 </head>
 <body>
 
-<table style="width: 100%; border: none; border-collapse: collapse;">
-  <thead>
-    <tr><th style="height: 0.6in; padding: 0; border: none;"></th></tr>
-  </thead>
-  <tbody>
-    <tr><td style="padding: 0; border: none;">
-      
-      <div class="doc-title">เพลง${songTitle}</div>
-      ${contentHTML}
-
-    </td></tr>
-  </tbody>
-</table>
+<div class="print-document">${contentHTML}</div>
 
 <div class="print-actions">
-   <button class="print-btn close" onclick="window.close()">✕ ปิดหน้านี้</button>
-   <button class="print-btn" onclick="window.print()">🖨️ พิมพ์/Save</button>
+   <div class="print-buttons">
+     <button class="print-btn close" onclick="window.close()">✕ ปิดหน้านี้</button>
+     <button class="print-btn" onclick="window.print()">🖨️ พิมพ์/Save</button>
+   </div>
+   <div class="print-hint">ในตัวเลือกเพิ่มเติม ให้ปิด “หัวกระดาษและท้ายกระดาษ” เพื่อซ่อนวันที่ เวลา และชื่อหน้า</div>
 </div>
 
 </body>

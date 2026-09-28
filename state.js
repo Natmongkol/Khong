@@ -254,8 +254,8 @@ function updatePageTitle() {
 
 const BEATS_PER_BAR = 4;
 const BARS_PER_VAK = 8;       
-// ไม่มีเพดานจำนวนวรรคจากตัวแอปเอง; ขีดจำกัดจริงขึ้นกับหน่วยความจำของเบราว์เซอร์และเครื่องผู้ใช้
-const MAX_VAKS = Number.MAX_SAFE_INTEGER;
+// Keep the editor responsive: every vak creates a complete set of editable DOM cells.
+const MAX_VAKS = 1000;
 
 const SECTION_TEMPO_RATES = {
   'sam-chan': 'สามชั้น',
@@ -633,8 +633,10 @@ async function openProjectFile() {
 function scheduleAutosave() { markDocumentDirty(); }
 
 async function saveCurrentProject() {
-  const ok = currentProjectHandle
-    ? await writeProjectFile(currentProjectHandle, currentProjectName)
+  const expectedName = `${getSafeFilename(state.songName)}.json`;
+  const sameName = currentProjectHandle && currentProjectHandle.name === expectedName;
+  const ok = sameName
+    ? await writeProjectFile(currentProjectHandle, currentProjectHandle.name)
     : await saveProjectAs();
   if (ok === true) showToast('บันทึกไฟล์งานลงเครื่องแล้ว', 'success');
   if (ok === 'download-created') showToast('เบราว์เซอร์เริ่มดาวน์โหลดไฟล์แล้ว — ตรวจสอบโฟลเดอร์ดาวน์โหลดก่อนปิดหน้า', 'info');

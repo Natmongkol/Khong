@@ -373,8 +373,9 @@ function moveCursorBy(delta) {
 }
 
 function getSafeFilename(name) {
-  if (!name || name.trim() === '') return getActiveInst().id;
-  return name.trim().replace(/[\/\\?%*:|"<>]/g, '-');
+  const title = (typeof name === 'string' ? name : '').trim();
+  const safeTitle = title.replace(/[\u0000-\u001f\/\\?%*:|"<>]/g, '-').replace(/[. ]+$/g, '');
+  return safeTitle || 'เพลงที่ไม่ระบุ';
 }
 
 function copyRoom() {
