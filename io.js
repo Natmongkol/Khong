@@ -6,9 +6,9 @@ function restoreProjectData(data, preserveUndo = false) {
   if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Invalid project data');
   if (!data.notes || !Array.isArray(data.notes.right)) throw new Error('ข้อมูลบันทึกไม่สมบูรณ์');
 
-  const importedInstrument = data.instrument || currentInstrument;
+  let importedInstrument = data.instrument || currentInstrument;
   if (!Object.prototype.hasOwnProperty.call(INSTRUMENTS, importedInstrument)) {
-    throw new Error('Unknown instrument in imported project');
+    importedInstrument = currentInstrument;
   }
 
   if (preserveUndo) pushUndo();
@@ -24,8 +24,6 @@ function restoreProjectData(data, preserveUndo = false) {
       document.getElementById('kb-kwy').style.display = (importedInstrument === 'kwy') ? 'block' : 'none';
       document.getElementById('kb-kmwy').style.display = (importedInstrument === 'kmwy') ? 'block' : 'none';
       document.getElementById('kb-ranatek').style.display = (importedInstrument === 'ranatek') ? 'block' : 'none';
-      document.getElementById('kb-khluy').style.display = (importedInstrument === 'khluy') ? 'block' : 'none';
-      applyInstrumentUIConstraints(importedInstrument);
       renderImeInfographic();
       renderGongs();
   }
@@ -82,12 +80,46 @@ function restoreProjectData(data, preserveUndo = false) {
     : [];
   state.notes.right = clampNotes(data.notes.right);
   state.notes.left  = clampNotes(data.notes.left);
+  state.noteExtras.right = Array.from({ length: maxBeats }, () => []);
+  state.noteExtras.left = Array.from({ length: maxBeats }, () => []);
+  const restoreGroups = (hand) => {
+    const source = data.noteGroups?.[hand];
+    if (!Array.isArray(source)) {
+      state.noteGroups[hand] = Array.from({ length: maxBeats }, () => []);
+      return;
+    }
+    state.noteGroups[hand] = Array.from({ length: maxBeats }, (_, beat) => {
+      const saved = Array.isArray(source[beat]) ? source[beat][0] : null;
+      const notes = Array.isArray(saved?.notes)
+        ? saved.notes.slice(0, 1).map(v => Number.isInteger(v) && v >= 0 && v <= maxIdx ? v : null).filter(v => v !== null)
+        : [];
+      if (!notes.length) return [];
+      const technique = Object.prototype.hasOwnProperty.call(PLAYING_TECHNIQUES, saved.technique) ? saved.technique : null;
+      return [{
+        id: typeof saved.id === 'string' && /^[a-zA-Z0-9_-]{1,100}$/.test(saved.id) ? saved.id : newNoteGroupId(),
+        notes,
+        technique,
+        duration: Number.isFinite(saved.duration) && saved.duration > 0 ? saved.duration : 1,
+        position: Number.isFinite(saved.position) ? Math.max(0, Math.min(0.999, saved.position)) : 0
+      }];
+    });
+    for (let beat = 0; beat < maxBeats; beat++) {
+      const group = state.noteGroups[hand][beat][0];
+      if (group) {
+        state.notes[hand][beat] = group.notes[0];
+        state.noteExtras[hand][beat] = [];
+      } else {
+        state.notes[hand][beat] = null;
+        state.noteExtras[hand][beat] = [];
+      }
+    }
+  };
+  restoreGroups('right');
+  restoreGroups('left');
 
   // โหมดบันทึกโน้ต: ใช้ค่าที่บันทึกไว้ในไฟล์ ถ้าไม่มี (ไฟล์เก่าก่อนมีฟีเจอร์นี้) ให้ถือเป็นสองมือ (ค่าเริ่มต้นเดิม)
-  // เครื่องที่บันทึกได้แค่มือเดียว (เช่น ขลุ่ยเพียงออ) บังคับเป็นมือเดียวเสมอ ไม่ว่าไฟล์จะบันทึกไว้อย่างไร
-  const forceOneHand = !!(INSTRUMENTS[importedInstrument] && INSTRUMENTS[importedInstrument].oneHandOnly);
-  state.recordMode = (data.recordMode === 'one' || forceOneHand) ? 'one' : 'two';
-  if (state.recordMode === 'one') { state.notes.left.fill(null); state.hand = 'right'; }
+  state.recordMode = data.recordMode === 'one' ? 'one' : 'two';
+  if (state.recordMode === 'one') { state.notes.left.fill(null); state.noteExtras.left = state.notes.left.map(() => []); state.noteGroups.left = state.notes.left.map(() => []); state.hand = 'right'; }
   applyRecordModeUI(state.recordMode);
   
   state.cursorBeat = 0; ensureCapacity(); renderNotation();
@@ -102,6 +134,11 @@ function exportPDF() {
   function noteHTML(idx) {
     if (idx === null || idx === undefined || !displayNotes[idx]) return '<span class="rest">-</span>';
     return `<span class="note">${displayNotes[idx]}</span>`;
+  }
+  function beatHTML(hand, beat) {
+    const group = getBeatNoteGroup(hand, beat);
+    if (!group?.notes.length) return '<span class="rest">-</span>';
+    return `<span class="note-group" style="left:${group.position * 100}%;font-size:1em" data-duration="${group.duration}" data-position="${group.position}">${noteHTML(group.notes[0])}</span>`;
   }
 
   const totalLines = Math.ceil(state.numBars / BARS_PER_VAK);
@@ -128,10 +165,8 @@ function exportPDF() {
       const barEndClass = isBarEnd ? ' bar-end' : '';
       
       const globalBeat = line * 32 + b;
-      const rn = state.notes.right[globalBeat];
-      const ln = state.notes.left[globalBeat];
-      topCells += `<td class="nc${barEndClass}">${noteHTML(rn)}</td>`;
-      if (state.recordMode !== 'one') botCells += `<td class="nc${barEndClass}">${noteHTML(ln)}</td>`;
+      topCells += `<td class="nc${barEndClass}">${beatHTML('right', globalBeat)}</td>`;
+      if (state.recordMode !== 'one') botCells += `<td class="nc${barEndClass}">${beatHTML('left', globalBeat)}</td>`;
     }
 
     const hasRepeat = state.repeats && state.repeats[lineNum] !== undefined;
@@ -188,6 +223,7 @@ function exportPDF() {
   .line-block { margin-bottom: 14px; break-inside: avoid; page-break-inside: avoid; }
   .paired-empty { visibility: hidden; }
   table.notation-table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 16px; }
+  .note-group { position: relative; display: inline-flex; flex-direction: column; align-items: center; max-width: 100%; vertical-align: middle; }
   td.nc { border: none; text-align: center; padding: 0; height: 30px; vertical-align: middle; }
   .top-row td:first-child, .bot-row td:first-child { border-left: 1px solid #000; }
   .top-row td:last-child,  .bot-row td:last-child  { border-right: 1px solid #000; }
@@ -215,7 +251,7 @@ function exportPDF() {
 
 <div class="print-actions">
    <div class="print-buttons">
-     <button class="print-btn close" onclick="window.close()">✕ ปิดหน้านี้</button>
+     <button class="print-btn close" onclick="if (history.length > 1) history.back(); else window.close()">✕ ปิดหน้านี้</button>
      <button class="print-btn" onclick="window.print()">🖨️ พิมพ์/Save</button>
    </div>
    <div class="print-hint">ในตัวเลือกเพิ่มเติม ให้ปิด “หัวกระดาษและท้ายกระดาษ” เพื่อซ่อนวันที่ เวลา และชื่อหน้า</div>
@@ -232,17 +268,12 @@ function exportPDF() {
 
       // เปิดจาก user gesture โดยตรง; ไม่ต้องรอโหลดทรัพยากรภายนอกจึงใช้ขณะออฟไลน์ได้
       let opened = window.open(blobUrl, '_blank');
-      if (opened) opened.opener = null;
       if (!opened) {
-        // สำรองสำหรับเบราว์เซอร์ที่ไม่ยอมให้ window.open เปิด Blob URL โดยตรง
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        // หาก popup ถูกบล็อก ให้เปิดหน้าเอกสารในแท็บเดิมแทน ไม่แจ้งสำเร็จทั้งที่ไม่มีหน้าให้พิมพ์
+        window.location.assign(blobUrl);
+        return;
       }
+      opened.opener = null;
 
       // คืน memory หลังเปิด tab — หน้าใหม่โหลดเสร็จแล้วค่อย revoke
       setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
@@ -533,6 +564,10 @@ const PDF_IMPORT = (() => {
     ensureCapacity();
     state.notes.right.fill(null);
     state.notes.left.fill(null);
+    state.noteExtras.right = state.notes.right.map(() => []);
+    state.noteExtras.left = state.notes.left.map(() => []);
+    state.noteGroups.right = state.notes.right.map(() => []);
+    state.noteGroups.left = state.notes.left.map(() => []);
 
     // เคารพโหมดบันทึกโน้ตปัจจุบัน (มือเดียว/สองมือ) — ถ้าเป็นมือเดียว ไม่เติมข้อมูลมือซ้ายเข้าไปเลย
     // แม้ข้อมูลที่ parse มาจะมีแถวมือซ้ายติดมาด้วยก็ตาม (กันกรณีเผลอ import ทับ)
@@ -551,7 +586,7 @@ const PDF_IMPORT = (() => {
       }
     });
 
-    if (isOneHand) { state.notes.left.fill(null); state.hand = 'right'; }
+    if (isOneHand) { state.notes.left.fill(null); state.noteExtras.left = state.notes.left.map(() => []); state.noteGroups.left = state.notes.left.map(() => []); state.hand = 'right'; }
 
     state.cursorBeat = 0;
     if (typeof chordTimer !== 'undefined' && chordTimer) { clearTimeout(chordTimer); chordTimer = null; }

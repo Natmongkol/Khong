@@ -13,12 +13,6 @@ function renderGongs() {
     return;
   }
 
-  // ขลุ่ยเพียงออ: ไม่มีรูปเครื่องดนตรีให้แสดง (เล่น/บันทึกผ่านคีย์บอร์ด/แป้นสัมผัสเท่านั้น)
-  if (inst.noImage) {
-    _rebuildGongCache();
-    return;
-  }
-
   const numGongs = inst.numGongs;
   
   for (let i = 0; i < numGongs; i++) {
@@ -72,9 +66,6 @@ function layoutGongs() {
 
   // ระนาดเอก: ลูกระนาดเรียงด้วย CSS flex ปกติ ไม่ต้องคำนวณตำแหน่งวงกลม
   if (currentInstrument === 'ranatek') return;
-  // ขลุ่ยเพียงออ: ไม่มีรูปเครื่องดนตรีให้จัดวาง
-  if (getActiveInst().noImage) return;
-
   const inst = getActiveInst();
   const numGongs = inst.numGongs;
 
@@ -232,6 +223,12 @@ function ensureCapacity() {
     const arr = state.notes[h];
     while (arr.length < t) arr.push(null);
     if (arr.length > t) arr.length = t;
+    const extras = state.noteExtras[h];
+    while (extras.length < t) extras.push([]);
+    if (extras.length > t) extras.length = t;
+    const groups = state.noteGroups[h];
+    while (groups.length < t) groups.push([]);
+    if (groups.length > t) groups.length = t;
   }
   if (state.cursorBeat >= t) state.cursorBeat = t - 1;
 }
@@ -331,10 +328,14 @@ function commitChord() {
   if (left  !== null) cellRefs.push({ hand: 'left',  idx: cursor });
   if (right !== null) cellRefs.push({ hand: 'right', idx: cursor });
   pushUndo(cellRefs);
-  if (left !== null) state.notes.left[cursor] = left;
-  if (right !== null) state.notes.right[cursor] = right;
-  
-  advanceCursor(); patchNotation([cursor]);
+  for (const [hand, note] of [['left', left], ['right', right]]) {
+    if (note === null) continue;
+    state.notes[hand][cursor] = note;
+    state.noteExtras[hand][cursor] = [];
+    state.noteGroups[hand][cursor] = [];
+  }
+  advanceCursor();
+  patchNotation([cursor]);
 }
 
 function insertRest() {
@@ -344,6 +345,7 @@ function insertRest() {
   const cursor = state.cursorBeat;
   pushUndo([{ hand: 'left', idx: cursor }, { hand: 'right', idx: cursor }]);
   state.notes.left[cursor] = null; state.notes.right[cursor] = null;
+  state.noteExtras.left[cursor] = []; state.noteExtras.right[cursor] = [];
   advanceCursor(); patchNotation([cursor]);
 }
 
@@ -358,9 +360,11 @@ function deleteAtCursor() {
   pushUndo([{ hand: 'left', idx: targetBeat }, { hand: 'right', idx: targetBeat }]);
   if (hasContent) {
     state.notes.left[beat] = null; state.notes.right[beat] = null;
+    state.noteExtras.left[beat] = []; state.noteExtras.right[beat] = [];
   } else {
     state.cursorBeat = targetBeat;
     state.notes.left[targetBeat] = null; state.notes.right[targetBeat] = null;
+    state.noteExtras.left[targetBeat] = []; state.noteExtras.right[targetBeat] = [];
   }
   patchNotation([targetBeat]);
 }
@@ -382,9 +386,13 @@ function copyRoom() {
     if (state.cursorBeat === -1) return;
     const bar = Math.floor(state.cursorBeat / 4);
     const startB = bar * 4;
-    const data = { right: [], left: [] };
+    const data = { right: [], left: [], extrasRight: [], extrasLeft: [], groupsRight: [], groupsLeft: [] };
     data.right = state.notes.right.slice(startB, startB + 4);
     data.left  = state.notes.left.slice(startB, startB + 4);
+    data.extrasRight = state.noteExtras.right.slice(startB, startB + 4).map(a => [...a]);
+    data.extrasLeft = state.noteExtras.left.slice(startB, startB + 4).map(a => [...a]);
+    data.groupsRight = cloneNoteGroups(state.noteGroups.right.slice(startB, startB + 4));
+    data.groupsLeft = cloneNoteGroups(state.noteGroups.left.slice(startB, startB + 4));
     customClipboard = { type: 'room', data, length: 4, originalHand: 'right' };
     showToast('คัดลอกโน้ต 1 ห้อง (ทั้ง 2 มือ) เรียบร้อย', 'success');
     hideCellMenus();
@@ -405,8 +413,12 @@ function pasteRoom() {
     
     for (let i = 0; i < len; i++) {
         state.notes.right[startB + i] = customClipboard.data.right != null ? customClipboard.data.right[i] : null;
+        state.noteExtras.right[startB + i] = [...(customClipboard.data.extrasRight?.[i] || [])];
+        state.noteGroups.right[startB + i] = rekeyNoteGroups(customClipboard.data.groupsRight?.[i] || []);
         if (state.recordMode !== 'one') {
           state.notes.left[startB + i]  = customClipboard.data.left  != null ? customClipboard.data.left[i]  : null;
+          state.noteExtras.left[startB + i] = [...(customClipboard.data.extrasLeft?.[i] || [])];
+          state.noteGroups.left[startB + i] = rekeyNoteGroups(customClipboard.data.groupsLeft?.[i] || []);
         }
     }
     renderNotation(); hideCellMenus();
@@ -433,7 +445,7 @@ function copyMultiRooms() {
     const minBar = bars[0];
     const maxBar = bars[bars.length - 1];
     const copiedLength = (maxBar - minBar + 1) * 4;
-    const data = { right: new Array(copiedLength).fill(null), left: new Array(copiedLength).fill(null) };
+    const data = { right: new Array(copiedLength).fill(null), left: new Array(copiedLength).fill(null), extrasRight: new Array(copiedLength).fill(null).map(() => []), extrasLeft: new Array(copiedLength).fill(null).map(() => []), groupsRight: new Array(copiedLength).fill(null).map(() => []), groupsLeft: new Array(copiedLength).fill(null).map(() => []) };
     // activeRight/activeLeft: จำไว้ต่อจังหวะว่าตอนคัดลอก มือนั้นถูกเลือกจริงไหม
     // (ใช้ตอนวาง เพื่อไม่ให้ไปเขียนทับ/ล้างมือที่ไม่ได้เลือกตอนคัดลอก)
     const activeRight = new Array(copiedLength).fill(false);
@@ -444,8 +456,8 @@ function copyMultiRooms() {
         const startIdx = (bar - minBar) * 4;
         const globalBeat = bar * 4;
         for (let i = 0; i < 4; i++) {
-            if (hands.right) { data.right[startIdx + i] = state.notes.right[globalBeat + i]; activeRight[startIdx + i] = true; }
-            if (hands.left)  { data.left[startIdx + i]  = state.notes.left[globalBeat + i];  activeLeft[startIdx + i]  = true; }
+            if (hands.right) { data.right[startIdx + i] = state.notes.right[globalBeat + i]; data.extrasRight[startIdx + i] = [...state.noteExtras.right[globalBeat + i]]; data.groupsRight[startIdx + i] = cloneNoteGroups([state.noteGroups.right[globalBeat + i] || []])[0]; activeRight[startIdx + i] = true; }
+            if (hands.left)  { data.left[startIdx + i]  = state.notes.left[globalBeat + i]; data.extrasLeft[startIdx + i] = [...state.noteExtras.left[globalBeat + i]]; data.groupsLeft[startIdx + i] = cloneNoteGroups([state.noteGroups.left[globalBeat + i] || []])[0]; activeLeft[startIdx + i] = true; }
         }
     });
 
@@ -484,9 +496,13 @@ function pasteMultiRooms() {
         const idx = startB + i;
         if (customClipboard.data.right != null && (!activeRight || activeRight[i])) {
             state.notes.right[idx] = customClipboard.data.right[i];
+            state.noteExtras.right[idx] = [...(customClipboard.data.extrasRight?.[i] || [])];
+            state.noteGroups.right[idx] = rekeyNoteGroups(customClipboard.data.groupsRight?.[i] || []);
         }
         if (state.recordMode !== 'one' && customClipboard.data.left != null && (!activeLeft || activeLeft[i])) {
             state.notes.left[idx] = customClipboard.data.left[i];
+            state.noteExtras.left[idx] = [...(customClipboard.data.extrasLeft?.[i] || [])];
+            state.noteGroups.left[idx] = rekeyNoteGroups(customClipboard.data.groupsLeft?.[i] || []);
         }
     }
 
@@ -508,8 +524,8 @@ function deleteSelectedRooms() {
     roomMap.forEach((hands, bar) => {
         const startB = bar * 4;
         for (let i = 0; i < 4; i++) {
-            if (hands.right) state.notes.right[startB + i] = null;
-            if (hands.left)  state.notes.left[startB + i]  = null;
+            if (hands.right) { state.notes.right[startB + i] = null; state.noteExtras.right[startB + i] = []; }
+            if (hands.left)  { state.notes.left[startB + i]  = null; state.noteExtras.left[startB + i] = []; }
         }
     });
     state.isMultiSelectMode = false;
@@ -525,6 +541,10 @@ function deleteLine(lineIndex) {
     const startIdx = lineIndex * 32;
     state.notes.right.splice(startIdx, 32);
     state.notes.left.splice(startIdx, 32);
+    state.noteExtras.right.splice(startIdx, 32);
+    state.noteExtras.left.splice(startIdx, 32);
+    state.noteGroups.right.splice(startIdx, 32);
+    state.noteGroups.left.splice(startIdx, 32);
     state.numBars -= BARS_PER_VAK;
     document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
@@ -560,6 +580,11 @@ function insertLine(lineIndex) {
     const nulls = new Array(32).fill(null);
     state.notes.right.splice(insertAt, 0, ...nulls);
     state.notes.left.splice(insertAt, 0, ...nulls);
+    const emptyExtras = Array.from({ length: 32 }, () => []);
+    state.noteExtras.right.splice(insertAt, 0, ...emptyExtras.map(a => []));
+    state.noteExtras.left.splice(insertAt, 0, ...emptyExtras.map(a => []));
+    state.noteGroups.right.splice(insertAt, 0, ...emptyExtras.map(a => []));
+    state.noteGroups.left.splice(insertAt, 0, ...emptyExtras.map(a => []));
     state.numBars += BARS_PER_VAK;
     document.getElementById('numVak').value = state.numBars / BARS_PER_VAK;
 
@@ -597,9 +622,17 @@ function moveLineUp(lineIndex) {
 
     const chunkR = state.notes.right.splice(startCurrent, 32);
     const chunkL = state.notes.left.splice(startCurrent, 32);
+    const extraR = state.noteExtras.right.splice(startCurrent, 32);
+    const extraL = state.noteExtras.left.splice(startCurrent, 32);
+    const groupsR = state.noteGroups.right.splice(startCurrent, 32);
+    const groupsL = state.noteGroups.left.splice(startCurrent, 32);
 
     state.notes.right.splice(startAbove, 0, ...chunkR);
     state.notes.left.splice(startAbove, 0, ...chunkL);
+    state.noteExtras.right.splice(startAbove, 0, ...extraR);
+    state.noteExtras.left.splice(startAbove, 0, ...extraL);
+    state.noteGroups.right.splice(startAbove, 0, ...groupsR);
+    state.noteGroups.left.splice(startAbove, 0, ...groupsL);
 
     // Swap metadata: บรรทัด lineIndex+1 (1-based) ↔ lineIndex (1-based)
     const L1 = lineIndex;       // บรรทัดที่อยู่เหนือกว่าใน 1-based (ก่อนย้าย = lineIndex-1+1)
@@ -661,9 +694,17 @@ function moveLineUpNoUndo(lineIndex) {
 
     const chunkR = state.notes.right.splice(startCurrent, 32);
     const chunkL = state.notes.left.splice(startCurrent, 32);
+    const extraR = state.noteExtras.right.splice(startCurrent, 32);
+    const extraL = state.noteExtras.left.splice(startCurrent, 32);
+    const groupsR = state.noteGroups.right.splice(startCurrent, 32);
+    const groupsL = state.noteGroups.left.splice(startCurrent, 32);
 
     state.notes.right.splice(startAbove, 0, ...chunkR);
     state.notes.left.splice(startAbove, 0, ...chunkL);
+    state.noteExtras.right.splice(startAbove, 0, ...extraR);
+    state.noteExtras.left.splice(startAbove, 0, ...extraL);
+    state.noteGroups.right.splice(startAbove, 0, ...groupsR);
+    state.noteGroups.left.splice(startAbove, 0, ...groupsL);
 
     const L1 = lineIndex;
     const L2 = lineIndex + 1;

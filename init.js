@@ -38,7 +38,7 @@ function initInstrumentVisibility() {
   const setVisible = (visible) => {
     container.hidden = !visible;
     button.setAttribute('aria-expanded', String(visible));
-    button.textContent = visible ? '🙈 ซ่อนเครื่องดนตรี' : '👁️ แสดงเครื่องดนตรี';
+    button.textContent = visible ? 'ซ่อนเครื่องดนตรี' : 'แสดงเครื่องดนตรี';
 
     if (visible) requestAnimationFrame(() => { layoutGongs(); _rebuildGongCache(); });
   };
@@ -97,6 +97,10 @@ function initTopControls() {
         document.getElementById('numVak').value = 1;
         state.notes.right = new Array(32).fill(null);
         state.notes.left = new Array(32).fill(null);
+        state.noteExtras.right = Array.from({ length: 32 }, () => []);
+        state.noteExtras.left = Array.from({ length: 32 }, () => []);
+        state.noteGroups.right = Array.from({ length: 32 }, () => []);
+        state.noteGroups.left = Array.from({ length: 32 }, () => []);
         state.lineLengths = {};
         state.sections = {};
         state.sectionTempoRates = {};
@@ -140,6 +144,10 @@ function initTopControls() {
     document.getElementById('numVak').value = 1;
     state.notes.right = new Array(32).fill(null);
     state.notes.left = new Array(32).fill(null);
+    state.noteExtras.right = Array.from({ length: 32 }, () => []);
+    state.noteExtras.left = Array.from({ length: 32 }, () => []);
+    state.noteGroups.right = Array.from({ length: 32 }, () => []);
+    state.noteGroups.left = Array.from({ length: 32 }, () => []);
     state.lineLengths = {};
     state.sections = {};
     state.sectionTempoRates = {};
@@ -693,7 +701,7 @@ function initCellAndLineMenus() {
           const lineIndex = state.selectedLine - 1;
           const startB = lineIndex * 32; 
           const copiedLength = 32;
-          const data = { right: state.notes.right.slice(startB, startB + copiedLength), left: state.notes.left.slice(startB, startB + copiedLength) };
+          const data = { right: state.notes.right.slice(startB, startB + copiedLength), left: state.notes.left.slice(startB, startB + copiedLength), extrasRight: state.noteExtras.right.slice(startB, startB + copiedLength).map(a => [...a]), extrasLeft: state.noteExtras.left.slice(startB, startB + copiedLength).map(a => [...a]), groupsRight: cloneNoteGroups(state.noteGroups.right.slice(startB, startB + copiedLength)), groupsLeft: cloneNoteGroups(state.noteGroups.left.slice(startB, startB + copiedLength)) };
           customClipboard = { type: 'line', data, length: copiedLength, originalHand: 'both' };
           showToast(`คัดลอกบรรทัดที่ ${state.selectedLine} เรียบร้อย`, 'success');
           state.selectedLine = null;
@@ -710,7 +718,9 @@ function initCellAndLineMenus() {
           const startB = lineIndex * 32;
           for (let i = 0; i < customClipboard.length; i++) {
               state.notes.right[startB + i] = customClipboard.data.right[i];
-              if (state.recordMode !== 'one') state.notes.left[startB + i] = customClipboard.data.left[i];
+              state.noteExtras.right[startB + i] = [...(customClipboard.data.extrasRight?.[i] || [])];
+              state.noteGroups.right[startB + i] = rekeyNoteGroups(customClipboard.data.groupsRight?.[i] || []);
+              if (state.recordMode !== 'one') { state.notes.left[startB + i] = customClipboard.data.left[i]; state.noteExtras.left[startB + i] = [...(customClipboard.data.extrasLeft?.[i] || [])]; state.noteGroups.left[startB + i] = rekeyNoteGroups(customClipboard.data.groupsLeft?.[i] || []); }
           }
           showToast(`วางลงในบรรทัดที่ ${state.selectedLine} เรียบร้อย`, 'success');
           state.selectedLine = null;
@@ -757,13 +767,17 @@ function initCellAndLineMenus() {
       const sorted = [...state.selectedLines].sort((a, b) => a - b);
       if (sorted.length === 0) { showToast('ยังไม่ได้เลือกบรรทัด', 'error'); return; }
       const BEATS = BARS_PER_VAK * BEATS_PER_BAR;
-      const allRight = [], allLeft = [];
+      const allRight = [], allLeft = [], allExtrasRight = [], allExtrasLeft = [], allGroupsRight = [], allGroupsLeft = [];
       sorted.forEach(lineNum => {
           const startB = (lineNum - 1) * BEATS;
           allRight.push(...state.notes.right.slice(startB, startB + BEATS));
           allLeft.push(...state.notes.left.slice(startB, startB + BEATS));
+          allExtrasRight.push(...state.noteExtras.right.slice(startB, startB + BEATS).map(a => [...a]));
+          allExtrasLeft.push(...state.noteExtras.left.slice(startB, startB + BEATS).map(a => [...a]));
+          allGroupsRight.push(...cloneNoteGroups(state.noteGroups.right.slice(startB, startB + BEATS)));
+          allGroupsLeft.push(...cloneNoteGroups(state.noteGroups.left.slice(startB, startB + BEATS)));
       });
-      customClipboard = { type: 'multiLine', data: { right: allRight, left: allLeft }, length: allRight.length, lineCount: sorted.length, originalHand: 'both' };
+      customClipboard = { type: 'multiLine', data: { right: allRight, left: allLeft, extrasRight: allExtrasRight, extrasLeft: allExtrasLeft, groupsRight: allGroupsRight, groupsLeft: allGroupsLeft }, length: allRight.length, lineCount: sorted.length, originalHand: 'both' };
       // Also copy as text to system clipboard if supported
       const displayNotes = typeof notationDisplay === 'function' ? notationDisplay() : (getActiveInst ? getActiveInst().display : null);
       if (navigator.clipboard && displayNotes) {
@@ -791,6 +805,10 @@ function initCellAndLineMenus() {
           for (let i = 0; i < BEATS; i++) {
               state.notes.right[startB + i] = null;
               state.notes.left[startB + i] = null;
+              state.noteExtras.right[startB + i] = [];
+              state.noteExtras.left[startB + i] = [];
+              state.noteGroups.right[startB + i] = [];
+              state.noteGroups.left[startB + i] = [];
           }
       });
       showToast(`ล้าง ${sorted.length} บรรทัดเรียบร้อย`, 'success');
@@ -987,7 +1005,7 @@ function initNotationDelegation() {
         state.cursorBeat = beat; 
         state.hand = hand;
         state.isEditMode = true;
-        patchNotation([]); // เปลี่ยนแค่ cursor/editMode — โครงสร้าง DOM ไม่เปลี่ยน
+        patchNotation([beat]);
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellEditMenu'));
         lastTap.time = 0; 
@@ -995,7 +1013,7 @@ function initNotationDelegation() {
         state.cursorBeat = beat; 
         state.hand = hand;
         state.isEditMode = false;
-        patchNotation([]); // เปลี่ยนแค่ cursor — โครงสร้าง DOM ไม่เปลี่ยน
+        patchNotation([beat]);
         hideCellMenus();
         positionMenuForCell(document.getElementById('cellActionMenu'));
         lastTap = { time: now, beat, hand };

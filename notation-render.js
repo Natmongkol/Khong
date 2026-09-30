@@ -367,9 +367,9 @@ let _patchPrevHand = null;  // hand ก่อนหน้า
 let _patchPrevEditMode = null;
 
 function beatNoteHTML(hand, beat) {
-  const main = state.notes[hand][beat];
-  if (main == null) return '−';
-  return noteHTML(main);
+  const group = getBeatNoteGroup(hand, beat);
+  if (!group?.notes.length) return '−';
+  return `<span class="note-group" style="left:${group.position * 100}%" data-group-id="${group.id}" data-duration="${group.duration}" data-position="${group.position}">${noteHTML(group.notes[0])}</span>`;
 }
 let _cursorScrollFrame = null;
 let _pendingCursorElement = null;
@@ -393,6 +393,8 @@ function requestCursorScroll(element) {
 }
 
 function patchNotation(changedBeats = null) {
+  if (changedBeats === null) syncAllNoteGroups();
+  else changedBeats.forEach(beat => { syncBeatNoteGroup('right', beat); syncBeatNoteGroup('left', beat); });
   const root = document.getElementById('notation');
   // หากไม่มี DOM หรือจำนวนบรรทัดเปลี่ยน → rebuild เต็ม
   const expectedLines = Math.ceil(state.numBars / 8);
@@ -527,6 +529,7 @@ function patchNotation(changedBeats = null) {
 // renderNotation ยังคงถูกเรียกสำหรับการเปลี่ยนโครงสร้าง (insertLine, deleteLine, undo/redo ฯลฯ)
 
 function renderNotation() {
+  syncAllNoteGroups();
   // invalidate patch snapshot เสมอเมื่อ rebuild เต็ม
   _patchPrevNotes = null; _patchPrevCursor = -2; _patchPrevHand = null; _patchPrevEditMode = null;
   _beatCellMap = null; // ป้องกัน patchNotation ใช้ map เก่าระหว่าง rebuild DOM

@@ -45,18 +45,6 @@ const INSTRUMENTS = {
             if (idx <= 16) return 'mid';
             return 'high';
         }
-    },
-    khluy: {
-        id: 'khluy',
-        name: 'ขลุ่ยเพียงออ',
-        numGongs: 8,
-        freqs: [450, 497, 549, 606, 669, 738, 815, 900],
-        base: ['ด','ร','ม','ฟ','ซ','ล','ท','ด'],
-        display: ['ด','ร','ม','ฟ','ซ','ล','ท','ดํ'],
-        // ขลุ่ยเพียงออ: บันทึกได้แค่มือเดียว และไม่มีรูปเครื่องดนตรีให้แสดง (ดู applyInstrumentUIConstraints)
-        oneHandOnly: true,
-        noImage: true,
-        getNoteRange: (idx) => (idx === 7 ? 'high' : 'mid')
     }
 };
 
@@ -118,24 +106,6 @@ function keyboardIndexForCode(instId, code) {
   return inst.keyCodes.findIndex((key) => Array.isArray(key) ? key.includes(code) : key === code);
 }
 
-// ── ข้อจำกัด UI เฉพาะเครื่อง (เช่น ขลุ่ยเพียงออ: ไม่มีรูปเครื่องดนตรี + บันทึกได้แค่มือเดียว) ──
-// ใช้ร่วมกันทั้งตอนสลับเครื่องปกติ (switchInstrument) และตอนโหลด/นำเข้าไฟล์ (restoreProjectData ใน io.js)
-function applyInstrumentUIConstraints(instId) {
-  const inst = INSTRUMENTS[instId];
-  const noImage = !!(inst && inst.noImage);
-
-  const instPanel = document.getElementById('instrumentPanel');
-  if (instPanel) instPanel.style.display = noImage ? 'none' : '';
-
-  const recordModeRow = document.getElementById('recordModeRow');
-  if (recordModeRow) recordModeRow.style.display = (inst && inst.oneHandOnly) ? 'none' : '';
-
-  if (inst && inst.oneHandOnly && state.recordMode !== 'one') {
-    setRecordMode('one');
-  }
-  updateTuningUI();
-}
-
 function getActiveInst() { return INSTRUMENTS[currentInstrument]; }
 function noteRange(idx) { return getActiveInst().getNoteRange(idx); }
 // ทางเสียงมีผลต่อโน้ตที่บันทึก ตาราง และการส่งออกด้วย เพื่อให้เปลี่ยนทางแล้วเห็นผลทันที
@@ -163,18 +133,7 @@ function switchInstrument(instId) {
     document.getElementById('kb-kwy').style.display = (instId === 'kwy') ? 'block' : 'none';
     document.getElementById('kb-kmwy').style.display = (instId === 'kmwy') ? 'block' : 'none';
     document.getElementById('kb-ranatek').style.display = (instId === 'ranatek') ? 'block' : 'none';
-    document.getElementById('kb-khluy').style.display = (instId === 'khluy') ? 'block' : 'none';
-
-    applyInstrumentUIConstraints(instId);
     applyTuning(state.tuning);
-
-    // เริ่มโหลดเสียงขลุ่ยจริงล่วงหน้า เพื่อให้พร้อมทันทีที่กดเล่นโน้ตแรก
-    if (instId === 'khluy' && typeof ensureKhluySamples === 'function') {
-      ensureKhluySamples().catch((error) => {
-        console.error('โหลดเสียงขลุ่ยไม่สำเร็จ:', error);
-        showToast('โหลดเสียงขลุ่ยไม่สำเร็จ โปรดตรวจสอบไฟล์เสียง', 'error');
-      });
-    }
 
     updatePageTitle();
     renderNotation();
@@ -218,6 +177,8 @@ function setRecordMode(mode) {
   if (mode === 'one') {
     // ตัดระบบมือซ้ายออกจริง ไม่ใช่แค่ซ่อนด้วย CSS: เคลียร์ข้อมูลโน้ตมือซ้ายทั้งหมด
     state.notes.left.fill(null);
+    state.noteExtras.left = state.notes.left.map(() => []);
+    state.noteGroups.left = state.notes.left.map(() => []);
     state.hand = 'right';
     // ยกเลิกปุ่มลัดจับคู่มือที่อาจค้างอยู่ (Tab/Shift/↑/↓)
     if (typeof tabHeld !== 'undefined') { tabHeld = shiftHeld = arrowUpHeld = arrowDownHeld = false; }
@@ -282,13 +243,82 @@ function effectiveSectionTempoRate(lineNum) {
 const state = {
   songName: '', hand: 'right', bpm: 120, numBars: 8, cursorBeat: -1,
   isRecording: true, isPlaying: false, playStart: 0, currentBeat: -1,
-  notes: { right: [], left: [] }, clipboardVak: null, repeats: {}, sections: {}, sectionTempoRates: {}, lineLengths: {}, tuning: 'peang-or-bon',
+  notes: { right: [], left: [] }, noteExtras: { right: [], left: [] },
+  noteGroups: { right: [], left: [] },
+  clipboardVak: null, repeats: {}, sections: {}, sectionTempoRates: {}, lineLengths: {}, tuning: 'peang-or-bon',
   recordMode: 'two', // 'two' = สองมือ (default, พฤติกรรมเดิม) | 'one' = มือเดียว (ใช้เฉพาะแถว right)
   playMode: 'all', selectionHands: ['right', 'left'], _editingSection: null,
   isEditMode: false, isMultiSelectMode: false, selectedRooms: new Set(), currentPlayingLine: null,
   selectedLine: null,
   isMultiLineMode: false, selectedLines: new Set()
 };
+
+const PLAYING_TECHNIQUES = Object.freeze({
+  khayi: 'ขยี้', sabat: 'สะบัด', sadoe: 'สะเดาะ'
+});
+
+function cloneNoteGroups(groups) {
+  return (groups || []).map(beatGroups => (beatGroups || []).map(group => ({ ...group, notes: [...(group.notes || [])] })));
+}
+
+function newNoteGroupId() {
+  return `note-group-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function rekeyNoteGroups(groups) {
+  return (groups || []).map(group => ({ ...group, id: newNoteGroupId(), notes: [...(group.notes || [])] }));
+}
+
+function syncBeatNoteGroup(hand, beat) {
+  if (!Number.isInteger(beat) || beat < 0 || !state.notes[hand]) return null;
+  const notes = state.notes[hand]?.[beat] == null ? [] : [state.notes[hand][beat]];
+  const groups = state.noteGroups[hand];
+  const current = groups?.[beat]?.[0] || null;
+  if (!notes.length) { groups[beat] = []; return null; }
+
+  if (current && current.notes?.length) {
+    const wasPrefix = current.notes.every((note, i) => notes[i] === note);
+    const isPrefix = notes.every((note, i) => current.notes[i] === note);
+    if (wasPrefix || isPrefix || notes.length === current.notes.length) {
+      current.notes = [...notes];
+      current.duration = Number.isFinite(current.duration) && current.duration > 0 ? current.duration : 1;
+      current.position = Number.isFinite(current.position) ? current.position : 0;
+      current.technique = Object.prototype.hasOwnProperty.call(PLAYING_TECHNIQUES, current.technique) ? current.technique : null;
+      return current;
+    }
+  }
+
+  const group = { id: newNoteGroupId(), notes: [...notes], technique: null, duration: 1, position: 0 };
+  groups[beat] = [group];
+  return group;
+}
+
+function syncAllNoteGroups() {
+  for (const hand of ['right', 'left']) {
+    const total = state.notes[hand].length;
+    state.noteGroups[hand] ||= [];
+    state.noteGroups[hand].length = total;
+    for (let beat = 0; beat < total; beat++) syncBeatNoteGroup(hand, beat);
+  }
+}
+
+function getBeatNoteGroup(hand, beat) {
+  return syncBeatNoteGroup(hand, beat);
+}
+
+function getBeatNotes(hand, beat) {
+  return [...(getBeatNoteGroup(hand, beat)?.notes || [])];
+}
+
+function writeBeatNotes(hand, beat, notes) {
+  const values = Array.isArray(notes) && notes.length ? [notes[0]] : [];
+  state.notes[hand][beat] = values[0] ?? null;
+  state.noteExtras[hand][beat] = [];
+  const current = state.noteGroups[hand][beat]?.[0];
+  if (!values.length) state.noteGroups[hand][beat] = [];
+  else if (current) current.notes = values;
+  else state.noteGroups[hand][beat] = [{ id: newNoteGroupId(), notes: values, technique: null, duration: 1, position: 0 }];
+}
 
 let lastTap = { time: 0, beat: -1, hand: '' };
 let customClipboard = null;
@@ -316,11 +346,13 @@ function _snapMeta(includeDocument = false) {
   return meta;
 }
 function _makeFullSnapshot() {
-  return { delta: false, right: [...state.notes.right], left: [...state.notes.left], ..._snapMeta(true) };
+  syncAllNoteGroups();
+  return { delta: false, right: [...state.notes.right], left: [...state.notes.left], extrasRight: state.noteExtras.right.map(a => [...(a || [])]), extrasLeft: state.noteExtras.left.map(a => [...(a || [])]), groupsRight: cloneNoteGroups(state.noteGroups.right), groupsLeft: cloneNoteGroups(state.noteGroups.left), ..._snapMeta(true) };
 }
 function _makeDeltaSnapshot(cellRefs) {
   // cellRefs: [{hand, idx}, ...] — จับค่า "ปัจจุบัน" ของช่องเหล่านี้ไว้ (ใช้ตอน apply กลับ)
-  const cells = cellRefs.map(({ hand, idx }) => ({ hand, idx, val: state.notes[hand][idx] }));
+  cellRefs.forEach(({ hand, idx }) => syncBeatNoteGroup(hand, idx));
+  const cells = cellRefs.map(({ hand, idx }) => ({ hand, idx, val: state.notes[hand][idx], extras: [...(state.noteExtras[hand][idx] || [])], groups: cloneNoteGroups([state.noteGroups[hand][idx] || []])[0] }));
   return { delta: true, cells, ..._snapMeta() };
 }
 
@@ -376,12 +408,6 @@ function restoreSnapshot(snap) {
       document.getElementById('kb-kwy').style.display = (snap.instrument === 'kwy') ? 'block' : 'none';
       document.getElementById('kb-kmwy').style.display = (snap.instrument === 'kmwy') ? 'block' : 'none';
       document.getElementById('kb-ranatek').style.display = (snap.instrument === 'ranatek') ? 'block' : 'none';
-      document.getElementById('kb-khluy').style.display = (snap.instrument === 'khluy') ? 'block' : 'none';
-      applyInstrumentUIConstraints(snap.instrument);
-      if (snap.instrument === 'khluy' && typeof ensureKhluySamples === 'function') {
-        ensureKhluySamples().catch((error) => console.error('โหลดเสียงขลุ่ยไม่สำเร็จ:', error));
-      }
-      
       renderImeInfographic();
       renderGongs();
   }
@@ -395,9 +421,13 @@ function restoreSnapshot(snap) {
   ensureCapacity(); // ต้องเรียกก่อน apply ค่าโน้ต กัน idx เกินขอบเขตกรณี numBars เปลี่ยน
 
   if (snap.delta) {
-    for (const c of snap.cells) { state.notes[c.hand][c.idx] = c.val; }
+    for (const c of snap.cells) { state.notes[c.hand][c.idx] = c.val; state.noteExtras[c.hand][c.idx] = [...(c.extras || [])]; state.noteGroups[c.hand][c.idx] = cloneNoteGroups([c.groups || []])[0]; }
   } else {
     state.notes.right = snap.right; state.notes.left = snap.left;
+    state.noteExtras.right = (snap.extrasRight || []).map(a => [...a]);
+    state.noteExtras.left = (snap.extrasLeft || []).map(a => [...a]);
+    state.noteGroups.right = cloneNoteGroups(snap.groupsRight);
+    state.noteGroups.left = cloneNoteGroups(snap.groupsLeft);
   }
 
   state.cursorBeat = snap.cursorBeat; state.hand = snap.hand;
@@ -464,9 +494,10 @@ const hasFileSystemAccess = 'showSaveFilePicker' in window && 'showOpenFilePicke
 
 function buildSaveData() {
   if (chordTimer) { clearTimeout(chordTimer); commitChord(); }
+  syncAllNoteGroups();
   return {
     type: 'khong-wong-yai-notation', 
-    version: 5, 
+    version: 7, 
     instrument: currentInstrument,
     recordMode: state.recordMode,
     songName: state.songName, 
@@ -476,6 +507,12 @@ function buildSaveData() {
     notes: state.recordMode === 'one'
       ? { right: [...state.notes.right] }
       : { right: [...state.notes.right], left: [...state.notes.left] }, 
+    noteExtras: state.recordMode === 'one'
+      ? { right: state.noteExtras.right.map(a => [...(a || [])]) }
+      : { right: state.noteExtras.right.map(a => [...(a || [])]), left: state.noteExtras.left.map(a => [...(a || [])]) },
+    noteGroups: state.recordMode === 'one'
+      ? { right: cloneNoteGroups(state.noteGroups.right) }
+      : { right: cloneNoteGroups(state.noteGroups.right), left: cloneNoteGroups(state.noteGroups.left) },
     savedAt: new Date().toISOString()
   };
 }

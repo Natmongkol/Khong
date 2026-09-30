@@ -321,7 +321,7 @@ section.panel.controls-panel {
 .gong .note-label {
   position: absolute;
   top: 50%; left: 50%; transform: translate(-50%, -50%);
-  font-size: clamp(11px, calc(var(--gong-size) * 0.38), 18px);
+  font-size: clamp(13px, calc(var(--gong-size) * 0.42), 20px);
   font-weight: 800; pointer-events: none; white-space: nowrap; line-height: 1;
   color: #ffffff;
   text-shadow: 0 1px 2px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6);
@@ -533,7 +533,7 @@ section.panel.controls-panel {
 }
 .bar-cell::before {
   content: attr(title); position: absolute; top: -1px; right: 3px;
-  font-size: 8px; color: var(--dim); pointer-events: none; font-family: "SF Mono", Menlo, monospace;
+  font-size: 10px; color: var(--dim); pointer-events: none; font-family: "SF Mono", Menlo, monospace;
 }
 
 /* เอา contain: layout style paint; ออก เพื่อแก้บั๊กไฮไลต์โน้ตบน Safari (iOS/iPad) */
@@ -548,6 +548,7 @@ section.panel.controls-panel {
 }
 .beat-cell.empty { color: var(--dim); }
 .beat-cell.high, .beat-cell.low, .beat-cell.mid { color: var(--text); }
+.note-group { position: relative; display: inline-flex; flex-direction: column; align-items: center; max-width: 100%; vertical-align: middle; }
 
 .nn { position: relative; display: inline-block; padding: 0.2em 0; line-height: 1; }
 .nn-low::after, .nn-high::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); border-radius: 50%; }
@@ -803,6 +804,9 @@ section.panel.controls-panel {
 .tk-action.left  { border-color: var(--purple); color: var(--purple); }
 .tk-action.right { border-color: var(--purple); color: var(--purple); }
 .tk-action.enter { border-color: var(--green);  color: var(--green);  }
+#cellEditMenu .tsm-btn { flex: 1 1 100%; border-right: none; border-bottom: 1px solid var(--border); }
+#cellEditMenu .tsm-btn.active { background: rgba(181,101,47,0.14); color: var(--accent); }
+#cellEditMenu { max-height: min(52vh, 420px); overflow-y: auto; overscroll-behavior: contain; }
 .tk-action.undo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
 .tk-action.redo  { border-color: var(--purple); color: var(--purple); font-size: 16px; }
 .tk-action.undo.disabled,
@@ -1293,36 +1297,39 @@ body {
   line-height: 1.55;
 }
 body * { font-family: 'TH SarabunPSK', sans-serif !important; }
-body { font-size: 18px; }
-header h1 { font-size: 26px; }
-section.panel h2 { font-size: 14px; }
-section.panel h3 { font-size: 19px; }
-.controls-summary-title { font-size: 13px; }
-.controls-summary-subtitle { font-size: 18px; }
-.controls-summary-action { font-size: 15px; }
-.ctrl-block-label { font-size: 13px; }
-.btn, .btn-icon { font-size: 16px; }
-.toggle-label { font-size: 15px; }
-.inst-select { font-size: 17px; }
-.tempo-input, .song-input { font-size: 17px; }
-.dropdown-item { font-size: 16px; }
-.stat .label { font-size: 13px; }
-.stat .value { font-size: 17px; }
-.vak-label { font-size: 17px; }
-.hand-label { font-size: 15px; }
-.beat-cell { font-size: clamp(16px, 3.5vw, 18px); }
-.legend-item { font-size: 15px; }
-.btn-line { font-size: 15px; }
-.line-num { font-size: 14px; }
-.sec-title { font-size: 18px; }
-.btn-sec, .sec-tempo-label, .sec-tempo-select, .sec-tempo-badge { font-size: 15px; }
-.modal-body { font-size: 17px; }
-.save-badge, .save-file-name, .autosave-status { font-size: 14px; }
-.tk-label, .tk-key-hint, .tk-mode-banner { font-size: 13px; }
-footer { font-size: 14px; }
+body { font-size: 20px; }
+header h1 { font-size: 29px; }
+section.panel h2 { font-size: 16px; }
+section.panel h3 { font-size: 21px; }
+.controls-summary-title { font-size: 14px; }
+.controls-summary-subtitle { font-size: 20px; }
+.controls-summary-action { font-size: 16px; }
+.ctrl-block-label { font-size: 15px; }
+.btn, .btn-icon { font-size: 17px; }
+.toggle-label { font-size: 16px !important; }
+.record-mode-row label { font-size: 15px !important; }
+.help-text { font-size: 15px; }
+.inst-select { font-size: 18px; }
+.tempo-input, .song-input { font-size: 18px; }
+.dropdown-item { font-size: 17px; }
+.stat .label { font-size: 14px; }
+.stat .value { font-size: 18px; }
+.vak-label { font-size: 19px; }
+.hand-label { font-size: 17px; }
+.beat-cell { font-size: clamp(18px, 3.8vw, 20px); }
+.legend-item { font-size: 16px; }
+.btn-line { font-size: 16px; }
+.line-num { font-size: 15px; }
+.sec-title { font-size: 20px; }
+.btn-sec, .sec-tempo-label, .sec-tempo-select, .sec-tempo-badge { font-size: 16px; }
+.modal-body { font-size: 18px; }
+.save-badge, .save-file-name, .autosave-status { font-size: 15px; }
+.tk-label, .tk-key-hint, .tk-mode-banner { font-size: 14px; }
+.tk-note .tk-note-name { font-size: clamp(17px, 4.4vw, 21px); }
+footer { font-size: 15px; }
 @media (pointer: coarse) {
-  .beat-cell { font-size: clamp(20px, 5vw, 26px); }
-  .hand-label { font-size: 16px; }
+  .beat-cell { font-size: clamp(22px, 5.2vw, 28px); }
+  .hand-label { font-size: 17px; }
 }
 header {
   background: rgba(238,242,238,0.96);
@@ -1376,9 +1383,9 @@ section.panel {
   background: var(--bg);
   border-bottom-color: var(--border);
 }
-header h1 { font-size: 26px; }
+header h1 { font-size: 29px; }
 @media (max-width: 820px) {
   input[type="text"], input[type="number"], select, .tempo-input, .song-input, .sec-input, .repeat-target-input {
-    font-size: 18px !important;
+    font-size: 19px !important;
   }
 }
